@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "SIRADIG Auto - Autocompletar",
+  "version": "0.1.0",
+  "description": "Trae tu proximo comprobante pendiente desde SIRADIG Auto y lo completa en el formulario de Gastos de Adquisicion de Indumentaria y Equipamiento.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "https://serviciosjava2.afip.gob.ar/*",
+    "https://siradig.onrender.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://serviciosjava2.afip.gob.ar/radig/jsp/verGastosInduEquip.do*"],
+      "js": ["content_script.js"]
+    }
+  ]
+}
