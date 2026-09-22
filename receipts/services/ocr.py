@@ -30,7 +30,7 @@ def extraer_datos_factura(file_bytes: bytes, mime_type: str = "image/jpeg") -> d
     """Envía la imagen/PDF a Gemini y devuelve el JSON estructurado, o None si falla."""
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-3.5-flash",
         contents=[PROMPT, types.Part.from_bytes(data=file_bytes, mime_type=mime_type)],
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
