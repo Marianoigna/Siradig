@@ -23,3 +23,9 @@ def download_file(file_path: str) -> bytes:
     resp = requests.get(url, timeout=30)
     resp.raise_for_status()
     return resp.content
+
+
+def set_webhook(url: str) -> dict:
+    resp = requests.post(_url("setWebhook"), json={"url": url}, timeout=10)
+    resp.raise_for_status()
+    return resp.json()
