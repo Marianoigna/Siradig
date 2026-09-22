@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
@@ -14,6 +15,8 @@ from .models import Receipt, UserProfile
 from .serializers import ReceiptSerializer
 from .services import ocr as ocr_service
 from .services import telegram as telegram_service
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -96,6 +99,7 @@ def _handle_receipt_file(chat_id, photo, document):
     try:
         datos = ocr_service.extraer_datos_factura(file_bytes, mime_type=mime_type)
     except Exception:
+        logger.exception("Fallo el OCR de Gemini para el comprobante %s", receipt.pk)
         telegram_service.send_message(chat_id, "No pude leer los datos del comprobante, quedó guardado para revisión manual.")
         return
 
