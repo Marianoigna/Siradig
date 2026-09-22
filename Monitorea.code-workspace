@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "../Monitorea"
+		},
+		{
+			"name": "ProyectoTemperatura",
+			"path": "../../../02_VARIOS/Documentos/PlatformIO/Projects/ProyectoTemperatura"
+		},
+		{
+			"name": "Obtener_MAC_Receptor",
+			"path": "../../../02_VARIOS/Documentos/PlatformIO/Projects/Obtener_MAC_Receptor"
+		},
+		{
+			"path": "../../Proyecto SIRADIG"
+		}
+	],
+	"settings": {}
+}

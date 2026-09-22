@@ -1,0 +1,14 @@
+Django>=5.0
+djangorestframework
+django-cors-headers
+django-environ
+django-allauth
+psycopg2-binary
+pillow
+google-genai
+channels
+daphne
+paho-mqtt
+gunicorn
+whitenoise
+requests

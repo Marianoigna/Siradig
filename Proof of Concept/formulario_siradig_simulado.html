@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>SIRADIG - Formulario 572 (SIMULADO)</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #003366; border-bottom: 2px solid #003366; padding-bottom: 10px; }
+        h2 { color: #005599; margin-top: 25px; }
+        .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .form-group { flex: 1; display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-bottom: 5px; color: #333; font-size: 13px; }
+        input, select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        input:focus, select:focus { border-color: #005599; outline: none; box-shadow: 0 0 3px rgba(0,85,153,0.3); }
+        .btn { background: #003366; color: white; padding: 12px 30px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+        .btn:hover { background: #005599; }
+        .aviso { background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 20px; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏛️ SIRADIG - Formulario 572 Web</h1>
+        <div class="aviso">⚠️ Este es un formulario SIMULADO para pruebas de autocompletado. No envía datos a AFIP.</div>
+        
+        <h2>Deducción: Gastos Médicos y Paramédicos</h2>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="fecha">Fecha del Comprobante</label>
+                <input type="text" id="fecha" name="fecha" placeholder="DD/MM/AAAA">
+            </div>
+            <div class="form-group">
+                <label for="cuit">CUIT del Prestador</label>
+                <input type="text" id="cuit" name="cuit" placeholder="Ej: 30123456789">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="razon_social">Apellido y Nombre / Razón Social</label>
+                <input type="text" id="razon_social" name="razon_social" placeholder="Nombre del prestador">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="tipo_comprobante">Tipo de Comprobante</label>
+                <select id="tipo_comprobante" name="tipo_comprobante">
+                    <option value="">-- Seleccionar --</option>
+                    <option value="Factura">Factura</option>
+                    <option value="Ticket Factura">Ticket Factura</option>
+                    <option value="Nota de Crédito">Nota de Crédito</option>
+                    <option value="Recibo">Recibo</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="letra">Letra</label>
+                <select id="letra" name="letra">
+                    <option value="">-- Seleccionar --</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="Sin letra">Sin letra</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="numero">Número de Comprobante</label>
+                <input type="text" id="numero" name="numero" placeholder="0001-00001234">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="importe_total">Importe Total ($)</label>
+                <input type="text" id="importe_total" name="importe_total" placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label for="importe_iva">Importe IVA ($)</label>
+                <input type="text" id="importe_iva" name="importe_iva" placeholder="0.00">
+            </div>
+        </div>
+
+        <button class="btn" onclick="alert('✅ Comprobante agregado (simulado)')">Agregar Comprobante</button>
+    </div>
+</body>
+</html>
