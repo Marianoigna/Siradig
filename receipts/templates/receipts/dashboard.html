@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>SIRADIG Auto - Dashboard</title>
+</head>
+<body>
+    <h1>Hola, {{ request.user.first_name|default:request.user.username }}</h1>
+
+    <h2>Resumen</h2>
+    <ul>
+        <li>Comprobantes pendientes de carga en SIRADIG: {{ pendientes }}</li>
+        <li>Comprobantes ya cargados: {{ cargados }}</li>
+        <li>Total deducible acumulado: ${{ total_deducible }}</li>
+    </ul>
+
+    <p><a href="https://auth.afip.gob.ar/contribuyente_/login.xhtml" target="_blank">Ir a ARCA / AFIP</a></p>
+
+    <h2>Vincular Telegram</h2>
+    <p>Abrí este link desde tu celular para empezar a enviar comprobantes: <a href="{{ telegram_link }}">{{ telegram_link }}</a></p>
+
+    <h2>Token para la extensión del navegador</h2>
+    <p>Pegá este token en la extensión: <code>{{ profile.user.auth_token.key }}</code></p>
+
+    <h2>Comprobantes</h2>
+    <table border="1" cellpadding="4">
+        <tr>
+            <th>Fecha</th><th>Razón Social</th><th>Importe</th><th>Categoría</th><th>Origen</th><th>Estado</th>
+        </tr>
+        {% for r in receipts %}
+        <tr>
+            <td>{{ r.fecha_emision }}</td>
+            <td>{{ r.razon_social }}</td>
+            <td>{{ r.importe_total }}</td>
+            <td>{{ r.categoria_gasto_siradig }}</td>
+            <td>{{ r.get_origen_display }}</td>
+            <td>{{ r.get_estado_display }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
