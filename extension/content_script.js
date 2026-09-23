@@ -2,6 +2,22 @@
 // Selectores confirmados: numeroDoc, idConcepto (solo Indumentaria), mesDesde (solo Medicos),
 // btn_alta_comprobante, cmpFechaEmision, cmpTipo, cmpPuntoVenta, cmpNumero, cmpMontoFacturado.
 
+// Mapea la categoria interna del comprobante al link de "Agregar Deducciones y Desgravaciones"
+// que hay que clickear para llegar al formulario correspondiente en SIRADIG.
+const CATEGORIA_LINKS = {
+  medicos: "link_agregar_gastos_medicos",
+  indumentaria: null, // pendiente de relevar el id/href real
+};
+
+function irACategoria(categoriaKey) {
+  const linkId = CATEGORIA_LINKS[categoriaKey];
+  if (!linkId) return false;
+  const link = document.getElementById(linkId);
+  if (!link) return false;
+  link.click();
+  return true;
+}
+
 function setValue(selector, value) {
   const el = document.querySelector(selector);
   if (!el || value === undefined || value === null || value === "") return false;
@@ -99,6 +115,12 @@ async function fillReceipt(receipt) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === "GOTO_CATEGORY") {
+    const ok = irACategoria(message.categoriaKey);
+    sendResponse(ok ? { ok: true } : { ok: false, error: "No se encontro el link de esa categoria en esta pagina." });
+    return;
+  }
+
   if (message.type !== "FILL_RECEIPT") return;
 
   fillReceipt(message.receipt)
