@@ -6,7 +6,7 @@
 // que hay que clickear para llegar al formulario correspondiente en SIRADIG.
 const CATEGORIA_LINKS = {
   medicos: "link_agregar_gastos_medicos",
-  indumentaria: null, // pendiente de relevar el id/href real
+  indumentaria: "link_agregar_gastos_indu_equip",
 };
 
 function irACategoria(categoriaKey) {
@@ -16,6 +16,15 @@ function irACategoria(categoriaKey) {
   if (!link) return false;
   link.click();
   return true;
+}
+
+function findButtonByText(texto) {
+  const candidato = Array.from(document.querySelectorAll("button, a, input[type=button], span")).find(
+    (el) => el.textContent.trim().toLowerCase() === texto.toLowerCase()
+  );
+  if (!candidato) return null;
+  // El texto suele estar en un <span> interno; el click hay que hacerlo en el boton/enlace que lo contiene.
+  return candidato.closest("button, a, input[type=button]") || candidato;
 }
 
 function setValue(selector, value) {
@@ -111,13 +120,33 @@ async function fillReceipt(receipt) {
   // Monto Reintegrado no lo extrae el OCR (depende de reintegros de obra social/prepaga): queda a cargo del usuario.
   pendientes.push("Monto Reintegrado (#cmpMontoReintegrado) - completar a mano si corresponde");
 
+  const botonAgregar = findButtonByText("Agregar");
+  if (botonAgregar) {
+    botonAgregar.click();
+  } else {
+    pendientes.push("boton 'Agregar' del modal (no encontrado, el comprobante no quedo guardado en la tabla)");
+  }
+
   return pendientes;
+}
+
+function guardarFormulario() {
+  const boton = findButtonByText("Guardar");
+  if (!boton) return false;
+  boton.click();
+  return true;
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "GOTO_CATEGORY") {
     const ok = irACategoria(message.categoriaKey);
     sendResponse(ok ? { ok: true } : { ok: false, error: "No se encontro el link de esa categoria en esta pagina." });
+    return;
+  }
+
+  if (message.type === "GUARDAR_FORMULARIO") {
+    const ok = guardarFormulario();
+    sendResponse(ok ? { ok: true } : { ok: false, error: "No se encontro el boton 'Guardar' en esta pagina." });
     return;
   }
 
