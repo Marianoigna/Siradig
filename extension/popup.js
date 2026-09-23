@@ -67,3 +67,20 @@ document.getElementById("autocompletar").addEventListener("click", async () => {
     }
   });
 });
+
+document.getElementById("guardar").addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) {
+    statusEl.textContent = "No se encontro una pestana activa.";
+    return;
+  }
+  chrome.tabs.sendMessage(tab.id, { type: "GUARDAR_FORMULARIO" }, (response) => {
+    if (chrome.runtime.lastError) {
+      statusEl.textContent = "Abri el formulario de SIRADIG primero.";
+      return;
+    }
+    statusEl.textContent = response && response.ok
+      ? "Formulario guardado."
+      : `No se pudo guardar: ${response ? response.error : "error desconocido"}`;
+  });
+});
