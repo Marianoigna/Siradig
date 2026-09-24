@@ -26,8 +26,9 @@ def dashboard_home(request):
     context = {
         'profile': profile,
         'receipts': receipts,
-        'pendientes': receipts.filter(estado='pendiente_carga').count(),
+                'pendientes': receipts.filter(estado='pendiente_carga').count(),
         'cargados': receipts.filter(estado='cargado_en_siradig').count(),
+        'errores_carga': receipts.filter(estado='error_carga').count(),
         'total_deducible': sum(r.importe_total or 0 for r in receipts),
         'telegram_link': f"https://t.me/{settings.TELEGRAM_BOT_USERNAME}?start={profile.telegram_link_token}",
     }
