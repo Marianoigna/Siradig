@@ -11,10 +11,9 @@ logger = logging.getLogger(__name__)
 
 # Modelos actuales estables (ordenados por preferencia: rápidos y baratos primero)
 MODELOS_CANDIDATOS = [
-    "gemini-2.5-flash-preview-04-21",  # Preview más reciente (recomendado por error)
-    "gemini-2.5-pro-exp-03-25",         # Preview pro
-    "gemini-2.0-flash",                 # GA estable
-    "gemini-2.0-flash-lite",            # GA ligero
+    "gemini-3.6-flash",         # Modelo actual recomendado por Google
+    "gemini-3.5-flash-lite",   # Modelo recomendado alternativo
+    "gemini-3.5-flash",        # Flash completo (si existe en v1beta)
 ]
 
 ESQUEMA_FACTURA = {
