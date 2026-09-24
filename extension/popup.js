@@ -84,3 +84,35 @@ document.getElementById("guardar").addEventListener("click", async () => {
       : `No se pudo guardar: ${response ? response.error : "error desconocido"}`;
   });
 });
+
+// --- Escucha de errores de carga ---
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "ERROR_DETECTED") {
+    chrome.storage.local.get(["apiToken"], async (data) => {
+      if (!data.apiToken) return;
+      try {
+        const resp = await fetch(API_BASE + "/api/receipts/pending/", {
+          headers: { Authorization: "Token " + data.apiToken },
+        });
+        if (!resp.ok) return;
+        const receipts = await resp.json();
+        if (receipts.length > 0) {
+          const receipt = receipts[0];
+          await fetch(API_BASE + "/api/receipts/" + receipt.id + "/", {
+            method: "PATCH",
+            headers: {
+              Authorization: "Token " + data.apiToken,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ estado: "error_carga", mensaje_error: message.message || "Error detectado por extension" }),
+          });
+          document.getElementById("status").textContent = "Error detectado en carga: " + (message.message || "");
+        }
+      } catch (e) {
+        console.error("Error guardando estado de error:", e);
+      }
+    });
+    sendResponse({ ok: true });
+    return true;
+  }
+});

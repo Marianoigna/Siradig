@@ -156,6 +156,17 @@ function splitNumeroComprobanteLegacy(numero) {
   return { puntoVenta: null, numero: (numero || "").trim() || null };
 }
 
+function detectErrorOnForm() {
+  const errorText = Array.from(document.querySelectorAll('.error, .ui-state-error, .message.error, .alert.alert-danger, span.validation-error')).map(el => el.textContent.trim()).filter(t => t.length > 0).join(' | ');
+  const hasRedBorder = !!document.querySelector('input.error, input.ui-state-error, .editable.error');
+  if (errorText || hasRedBorder) {
+    const msg = errorText || 'Error detectado en formulario';
+    chrome.runtime.sendMessage({ type: 'ERROR_DETECTED', message: msg });
+    return msg;
+  }
+  return null;
+}
+
 function guardarFormulario() {
   const boton = findButtonByText("Guardar");
   if (!boton) return false;
