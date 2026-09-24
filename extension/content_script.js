@@ -1,13 +1,12 @@
-// Autocompleta el modal "Alta de Comprobante", comun a varias categorias de SIRADIG.
-// Selectores confirmados: numeroDoc, idConcepto (solo Indumentaria), mesDesde (solo Medicos),
-// btn_alta_comprobante, cmpFechaEmision, cmpTipo, cmpPuntoVenta, cmpNumero, cmpMontoFacturado.
+// Autocompleta formularios de SIRADIG para múltiples categorías.
 
-// Mapea la categoria interna del comprobante al link de "Agregar Deducciones y Desgravaciones"
-// que hay que clickear para llegar al formulario correspondiente en SIRADIG.
 const CATEGORIA_LINKS = {
   medicos: "link_agregar_gastos_medicos",
   indumentaria: "link_agregar_gastos_indu_equip",
+  cuota_medico: "link_agregar_cuotas_medico_asistenciales",
 };
+
+// --- Funciones de Utilidad ---
 
 function irACategoria(categoriaKey) {
   const linkId = CATEGORIA_LINKS[categoriaKey];
@@ -23,7 +22,6 @@ function findButtonByText(texto) {
     (el) => el.textContent.trim().toLowerCase() === texto.toLowerCase()
   );
   if (!candidato) return null;
-  // El texto suele estar en un <span> interno; el click hay que hacerlo en el boton/enlace que lo contiene.
   return candidato.closest("button, a, input[type=button]") || candidato;
 }
 
@@ -40,13 +38,14 @@ function exists(selector) {
   return !!document.querySelector(selector);
 }
 
+// --- Lógica de Negocio / Inferencia ---
+
 function inferConcepto(categoria) {
   const texto = (categoria || "").toLowerCase();
-  return texto.includes("equipo") || texto.includes("equipamiento") ? "2" : "1"; // 1=Indumentaria, 2=Equipamiento
+  return texto.includes("equipo") || texto.includes("equipamiento") ? "2" : "1";
 }
 
 function inferMes(fechaEmision) {
-  // Espera formato DD/MM/AAAA
   const match = (fechaEmision || "").match(/^\d{1,2}\/(\d{1,2})\/\d{4}$/);
   if (!match) return null;
   return String(parseInt(match[1], 10));
@@ -60,7 +59,7 @@ function inferTipoComprobante(tipo, letra) {
   if (t.includes("recibo") && l === "B") return "9";
   if (t.includes("recibo") && l === "C") return "15";
   if (t.includes("tique") || t.includes("ticket")) return "82";
-  return null; // no hay mapeo confiable (ej. letra A no es deducible en este formulario)
+  return null;
 }
 
 function splitNumeroComprobante(numero) {
@@ -69,62 +68,76 @@ function splitNumeroComprobante(numero) {
   return { puntoVenta: null, numero: (numero || "").trim() || null };
 }
 
-function findAltaComprobanteButton() {
+function findAltaButton() {
   return (
-    document.querySelector("#btn_alta_comprobante") ||
-    Array.from(document.querySelectorAll("a, button, input[type=button]")).find((el) =>
-      (el.textContent || el.value || "").toLowerCase().includes("alta de comprobante")
-    )
+    document.querySelector("#btn_alta_comprobante") || 
+    document.querySelector("#btn_alta_mes") ||
+    Array.from(document.querySelectorAll("a, button, input[type=button]")).find((el) => {
+      const txt = (el.textContent || el.value || "").toLowerCase();
+      return txt.includes("alta de comprobante") || txt.includes("agregar mes individual");
+    })
   );
 }
+
+// --- Acción Principal ---
 
 async function fillReceipt(receipt) {
   const pendientes = [];
 
-  if (!setValue("#numeroDoc", receipt.cuit_emisor)) pendientes.push("CUIT (#numeroDoc)");
+  // 1. CUIT del Emisor (común)
+  if (!setValue("#numeroDoc", receipt.cuit_emisor)) {
+    if (exists("#numeroDoc")) pendientes.push("CUIT (#numeroDoc)");
+  }
 
-  // Campos previos que varian por categoria: se completan solo si existen en la pagina actual.
+  // 2. Campos previos según categoría
   if (exists("#idConcepto")) {
-    if (!setValue("#idConcepto", inferConcepto(receipt.categoria_gasto_siradig))) {
-      pendientes.push("Concepto (#idConcepto)");
-    }
+    setValue("#idConcepto", inferConcepto(receipt.categoria_gasto_siradig));
   }
-  if (exists("#mesDesde")) {
-    const mes = inferMes(receipt.fecha_emision);
-    if (!mes || !setValue("#mesDesde", mes)) pendientes.push("Periodo (#mesDesde)");
-  }
-
-  const boton = findAltaComprobanteButton();
-  if (!boton) {
-    pendientes.push("boton 'Alta de Comprobante' (no encontrado en esta pantalla)");
+  
+  // 3. Abrir Modal de Alta
+  const botonAlta = findAltaButton();
+  if (!botonAlta) {
+    pendientes.push("No se encontró botón para iniciar la carga (Alta/Agregar)");
     return pendientes;
   }
 
-  boton.click();
-  // Le damos tiempo al modal a renderizarse antes de completar sus campos.
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  botonAlta.click();
+  await new Promise((resolve) => setTimeout(resolve, 600));
 
-  if (!setValue("#cmpFechaEmision", receipt.fecha_emision)) pendientes.push("Fecha (#cmpFechaEmision)");
+  // 4. Completar datos según el tipo de formulario detectado
+  
+  // Caso Cuota Médico-asistencial
+  if (exists("#detalleIndividualMes")) {
+    const mes = inferMes(receipt.fecha_emision);
+    if (!mes || !setValue("#detalleIndividualMes", mes)) pendientes.push("Mes (#detalleIndividualMes)");
+    if (!setValue("#detalleIndividualMontoMensual", receipt.importe_total)) {
+      pendientes.push("Monto Mensual (#detalleIndividualMontoMensual)");
+    }
+  } 
+  // Caso Comprobante Estándar (Médicos, Indumentaria, etc.)
+  else if (exists("#cmpFechaEmision")) {
+    if (!setValue("#cmpFechaEmision", receipt.fecha_emision)) pendientes.push("Fecha (#cmpFechaEmision)");
 
-  const tipoValue = inferTipoComprobante(receipt.tipo_comprobante, receipt.letra);
-  if (!tipoValue || !setValue("#cmpTipo", tipoValue)) {
-    pendientes.push("Tipo de comprobante (#cmpTipo) - revisar manualmente");
+    const tipoValue = inferTipoComprobante(receipt.tipo_comprobante, receipt.letra);
+    if (!tipoValue || !setValue("#cmpTipo", tipoValue)) {
+      pendientes.push("Tipo de comprobante (#cmpTipo)");
+    }
+
+    const { puntoVenta, numero } = splitNumeroComprobante(receipt.numero_comprobante);
+    setValue("#cmpPuntoVenta", puntoVenta);
+    setValue("#cmpNumero", numero);
+    setValue("#cmpMontoFacturado", receipt.importe_total);
+    pendientes.push("Monto Reintegrado - completar a mano");
+  } else {
+    pendientes.push("Formulario interno no reconocido");
   }
 
-  const { puntoVenta, numero } = splitNumeroComprobante(receipt.numero_comprobante);
-  if (!setValue("#cmpPuntoVenta", puntoVenta)) pendientes.push("Punto de venta (#cmpPuntoVenta)");
-  if (!setValue("#cmpNumero", numero)) pendientes.push("Numero de comprobante (#cmpNumero)");
-
-  if (!setValue("#cmpMontoFacturado", receipt.importe_total)) pendientes.push("Monto (#cmpMontoFacturado)");
-
-  // Monto Reintegrado no lo extrae el OCR (depende de reintegros de obra social/prepaga): queda a cargo del usuario.
-  pendientes.push("Monto Reintegrado (#cmpMontoReintegrado) - completar a mano si corresponde");
-
+  // 5. Intentar cerrar/agregar
   const botonAgregar = findButtonByText("Agregar");
   if (botonAgregar) {
     botonAgregar.click();
   } else {
-    pendientes.push("boton 'Agregar' del modal (no encontrado, el comprobante no quedo guardado en la tabla)");
+    pendientes.push("No se pudo hacer click automático en 'Agregar'");
   }
 
   return pendientes;
@@ -137,30 +150,31 @@ function guardarFormulario() {
   return true;
 }
 
+// --- Escucha de Mensajes ---
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "GOTO_CATEGORY") {
     const ok = irACategoria(message.categoriaKey);
-    sendResponse(ok ? { ok: true } : { ok: false, error: "No se encontro el link de esa categoria en esta pagina." });
+    sendResponse(ok ? { ok: true } : { ok: false });
     return;
   }
 
   if (message.type === "GUARDAR_FORMULARIO") {
     const ok = guardarFormulario();
-    sendResponse(ok ? { ok: true } : { ok: false, error: "No se encontro el boton 'Guardar' en esta pagina." });
+    sendResponse(ok ? { ok: true } : { ok: false });
     return;
   }
 
-  if (message.type !== "FILL_RECEIPT") return;
-
-  fillReceipt(message.receipt)
-    .then((pendientes) => {
-      if (pendientes.length === 0) {
-        sendResponse({ ok: true });
-      } else {
-        sendResponse({ ok: true, warning: `Falta completar a mano: ${pendientes.join(", ")}` });
-      }
-    })
-    .catch((err) => sendResponse({ ok: false, error: err.message }));
-
-  return true; // respuesta asincronica
+  if (message.type === "FILL_RECEIPT") {
+    fillReceipt(message.receipt)
+      .then((pendientes) => {
+        if (pendientes.length === 0) {
+          sendResponse({ ok: true });
+        } else {
+          sendResponse({ ok: true, warning: `Faltó: ${pendientes.join(", ")}` });
+        }
+      })
+      .catch((err) => sendResponse({ ok: false, error: err.message }));
+    return true; 
+  }
 });
