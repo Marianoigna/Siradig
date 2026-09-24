@@ -28,6 +28,7 @@ class Receipt(models.Model):
         ('pendiente_revision', 'Pendiente de revisión'),
         ('pendiente_carga', 'Pendiente de carga en SIRADIG'),
         ('cargado_en_siradig', 'Cargado en SIRADIG'),
+        ('error_carga', 'Error en carga en SIRADIG'),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='receipts')
@@ -48,6 +49,7 @@ class Receipt(models.Model):
 
     origen = models.CharField(max_length=20, choices=ORIGEN_CHOICES)
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente_revision')
+    mensaje_error = models.TextField(blank=True)
     raw_ocr_json = models.JSONField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
