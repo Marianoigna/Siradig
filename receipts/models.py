@@ -38,7 +38,9 @@ class Receipt(models.Model):
     razon_social = models.CharField(max_length=255, blank=True)
     tipo_comprobante = models.CharField(max_length=50, blank=True)
     letra = models.CharField(max_length=5, blank=True)
-    numero_comprobante = models.CharField(max_length=50, blank=True)
+    numero_comprobante = models.CharField(max_length=50, blank=True) # Mantenemos este por compatibilidad
+    punto_venta = models.CharField(max_length=5, blank=True)         # NUEVO
+    numero_solo = models.CharField(max_length=8, blank=True)         # NUEVO
     importe_total = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     importe_iva = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     # MVP: solo se soporta la categoría "Gastos de Adquisición de Indumentaria y Equipamiento"

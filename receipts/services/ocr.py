@@ -48,9 +48,29 @@ def extraer_datos_factura(file_bytes: bytes, mime_type: str = "image/jpeg") -> d
                     response_schema=ESQUEMA_FACTURA,
                 ),
             )
-            return json.loads(response.text)
+            datos = json.loads(response.text)
+            
+            # --- AGREGAR ESTO: Procesamos el número de comprobante antes de devolverlo ---
+            texto_num = datos.get("numero_comprobante", "")
+            pv, solo_num = procesar_numero_comprobante(texto_num)
+            datos["punto_venta"] = pv
+            datos["numero_solo"] = solo_num
+            
+            return datos
         except genai_errors.ServerError as exc:
             logger.warning("Modelo %s no disponible (%s), probando el siguiente", modelo, exc)
             ultimo_error = exc
             continue
     raise ultimo_error
+
+# (Asegúrate de que la función procesar_numero_comprobante siga al final del archivo)
+def procesar_numero_comprobante(texto_ocr):
+    # Si viene "00005-00001234"
+    if "-" in texto_ocr:
+        partes = texto_ocr.split("-")
+        pv = partes[0].strip().zfill(5) # Rellena con ceros hasta 5
+        num = partes[1].strip().zfill(8) # Rellena con ceros hasta 8
+        return pv, num
+    else:
+        # Si no hay guion, intentamos adivinar o lo ponemos todo en el numero
+        return "", texto_ocr.strip().zfill(8)

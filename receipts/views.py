@@ -105,7 +105,7 @@ def _handle_receipt_file(chat_id, photo, document):
 
     if datos:
         for campo in ['fecha_emision', 'cuit_emisor', 'razon_social', 'tipo_comprobante', 'letra',
-                      'numero_comprobante', 'importe_total', 'importe_iva', 'categoria_gasto_siradig']:
+                      'numero_comprobante', 'punto_venta', 'numero_solo', 'importe_total', 'importe_iva', 'categoria_gasto_siradig']:
             if campo in datos:
                 setattr(receipt, campo, datos[campo])
         receipt.raw_ocr_json = datos

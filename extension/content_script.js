@@ -40,6 +40,18 @@ function exists(selector) {
 
 // --- Lógica de Negocio / Inferencia ---
 
+// ... dentro de fillReceipt ...
+    // Ya no usamos splitNumeroComprobante, usamos los campos que vienen del servidor
+    if (receipt.punto_venta) {
+      setValue("#cmpPuntoVenta", receipt.punto_venta);
+    }
+    
+    if (receipt.numero_solo) {
+      setValue("#cmpNumero", receipt.numero_solo);
+    } else {
+      // Fallback por si usamos registros viejos
+      setValue("#cmpNumero", receipt.numero_comprobante);
+    }
 function inferConcepto(categoria) {
   const texto = (categoria || "").toLowerCase();
   return texto.includes("equipo") || texto.includes("equipamiento") ? "2" : "1";
@@ -177,4 +189,4 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .catch((err) => sendResponse({ ok: false, error: err.message }));
     return true; 
   }
-});
+});/*  */
