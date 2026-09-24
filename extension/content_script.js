@@ -40,18 +40,6 @@ function exists(selector) {
 
 // --- Lógica de Negocio / Inferencia ---
 
-// ... dentro de fillReceipt ...
-    // Ya no usamos splitNumeroComprobante, usamos los campos que vienen del servidor
-    if (receipt.punto_venta) {
-      setValue("#cmpPuntoVenta", receipt.punto_venta);
-    }
-    
-    if (receipt.numero_solo) {
-      setValue("#cmpNumero", receipt.numero_solo);
-    } else {
-      // Fallback por si usamos registros viejos
-      setValue("#cmpNumero", receipt.numero_comprobante);
-    }
 function inferConcepto(categoria) {
   const texto = (categoria || "").toLowerCase();
   return texto.includes("equipo") || texto.includes("equipamiento") ? "2" : "1";
@@ -72,12 +60,6 @@ function inferTipoComprobante(tipo, letra) {
   if (t.includes("recibo") && l === "C") return "15";
   if (t.includes("tique") || t.includes("ticket")) return "82";
   return null;
-}
-
-function splitNumeroComprobante(numero) {
-  const partes = (numero || "").split("-");
-  if (partes.length === 2) return { puntoVenta: partes[0].trim(), numero: partes[1].trim() };
-  return { puntoVenta: null, numero: (numero || "").trim() || null };
 }
 
 function findAltaButton() {
@@ -135,9 +117,21 @@ async function fillReceipt(receipt) {
       pendientes.push("Tipo de comprobante (#cmpTipo)");
     }
 
-    const { puntoVenta, numero } = splitNumeroComprobante(receipt.numero_comprobante);
-    setValue("#cmpPuntoVenta", puntoVenta);
-    setValue("#cmpNumero", numero);
+    // Usar campos nuevos de la BD (punto_venta, numero_solo) con fallback al split del viejo numero_comprobante
+    if (receipt.punto_venta) {
+      setValue("#cmpPuntoVenta", receipt.punto_venta);
+    } else {
+      const { puntoVenta } = splitNumeroComprobanteLegacy(receipt.numero_comprobante);
+      setValue("#cmpPuntoVenta", puntoVenta);
+    }
+
+    if (receipt.numero_solo) {
+      setValue("#cmpNumero", receipt.numero_solo);
+    } else {
+      const { numero } = splitNumeroComprobanteLegacy(receipt.numero_comprobante);
+      setValue("#cmpNumero", numero);
+    }
+
     setValue("#cmpMontoFacturado", receipt.importe_total);
     pendientes.push("Monto Reintegrado - completar a mano");
   } else {
@@ -153,6 +147,13 @@ async function fillReceipt(receipt) {
   }
 
   return pendientes;
+}
+
+// Helper legacy por si vienen comprobantes viejos sin los campos nuevos
+function splitNumeroComprobanteLegacy(numero) {
+  const partes = (numero || "").split("-");
+  if (partes.length === 2) return { puntoVenta: partes[0].trim(), numero: partes[1].trim() };
+  return { puntoVenta: null, numero: (numero || "").trim() || null };
 }
 
 function guardarFormulario() {
@@ -189,4 +190,4 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .catch((err) => sendResponse({ ok: false, error: err.message }));
     return true; 
   }
-});/*  */
+});
