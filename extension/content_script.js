@@ -167,6 +167,26 @@ function detectErrorOnForm() {
   return null;
 }
 
+function navegarAFormularioDeducciones() {
+  const btnUsuario = document.querySelector('input[type="button"][value*="IGNASZEWSKI"], input[type="button"][value*="MARIANO"]');
+  if (btnUsuario) {
+    btnUsuario.click();
+    setTimeout(() => window.location.reload(), 500);
+    return 'Seleccionando usuario...';
+  }
+  const btnCarga = Array.from(document.querySelectorAll('a, span, button')).find(el => el.textContent.trim() === 'Carga de Formulario');
+  if (btnCarga) {
+    btnCarga.click();
+    return 'Abriendo Carga de Formulario...';
+  }
+  const linkDeducciones = document.querySelector('a[href="#header_deducciones"], a.header_principal');
+  if (linkDeducciones) {
+    linkDeducciones.click();
+    return 'Navegando a Deducciones...';
+  }
+  return 'Navegación completa o no se encontraron elementos.';
+}
+
 function guardarFormulario() {
   const boton = findButtonByText("Guardar");
   if (!boton) return false;
@@ -180,6 +200,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "GOTO_CATEGORY") {
     const ok = irACategoria(message.categoriaKey);
     sendResponse(ok ? { ok: true } : { ok: false });
+    return;
+  }
+
+  if (message.type === "NAVEGAR_FORMULARIO") {
+    const res = navegarAFormularioDeducciones();
+    sendResponse({ ok: true, result: res });
     return;
   }
 
