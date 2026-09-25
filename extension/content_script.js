@@ -203,7 +203,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return;
   }
 
-  if (message.type === "NAVEGAR_FORMULARIO") {
+  if (message.type === "NAVEGAR_FORMULARIO" || message.type === "START_NAV_FLOW") {
     const res = navegarAFormularioDeducciones();
     sendResponse({ ok: true, result: res });
     return;
