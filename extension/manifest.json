@@ -14,7 +14,8 @@
   "content_scripts": [
     {
       "matches": ["https://serviciosjava2.afip.gob.ar/radig/jsp/*"],
-      "js": ["content_script.js"]
+      "js": ["content_script.js"],
+      "all_frames": true
     }
   ]
 }
