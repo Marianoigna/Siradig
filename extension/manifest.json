@@ -13,7 +13,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://serviciosjava2.afip.gob.ar/radig/jsp/*"],
+      "matches": ["https://serviciosjava2.afip.gob.ar/radig/jsp/*", "<all_urls>"],
       "js": ["content_script.js"],
       "all_frames": true
     }
