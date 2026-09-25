@@ -1,5 +1,7 @@
 // Autocompleta formularios de SIRADIG para múltiples categorías.
 
+console.log("[SIRADIG Auto] content_script.js inyectado en", location.href);
+
 const CATEGORIA_LINKS = {
   medicos: "link_agregar_gastos_medicos",
   indumentaria: "link_agregar_gastos_indu_equip",
@@ -156,43 +158,88 @@ function splitNumeroComprobanteLegacy(numero) {
   return { puntoVenta: null, numero: (numero || "").trim() || null };
 }
 
-function detectErrorOnForm() {
-  const errorText = Array.from(document.querySelectorAll('.error, .ui-state-error, .message.error, .alert.alert-danger, span.validation-error')).map(el => el.textContent.trim()).filter(t => t.length > 0).join(' | ');
-  const hasRedBorder = !!document.querySelector('input.error, input.ui-state-error, .editable.error');
-  if (errorText || hasRedBorder) {
-    const msg = errorText || 'Error detectado en formulario';
-    chrome.runtime.sendMessage({ type: 'ERROR_DETECTED', message: msg });
-    return msg;
-  }
-  return null;
-}
-
-function navegarAFormularioDeducciones() {
-  const btnUsuario = document.querySelector('input[type="button"][value*="IGNASZEWSKI"], input[type="button"][value*="MARIANO"]');
-  if (btnUsuario) {
-    btnUsuario.click();
-    setTimeout(() => window.location.reload(), 500);
-    return 'Seleccionando usuario...';
-  }
-  const btnCarga = Array.from(document.querySelectorAll('a, span, button')).find(el => el.textContent.trim() === 'Carga de Formulario');
-  if (btnCarga) {
-    btnCarga.click();
-    return 'Abriendo Carga de Formulario...';
-  }
-  const linkDeducciones = document.querySelector('a[href="#header_deducciones"], a.header_principal');
-  if (linkDeducciones) {
-    linkDeducciones.click();
-    return 'Navegando a Deducciones...';
-  }
-  return 'Navegación completa o no se encontraron elementos.';
-}
-
 function guardarFormulario() {
   const boton = findButtonByText("Guardar");
   if (!boton) return false;
   boton.click();
   return true;
 }
+
+// --- Navegacion automatica hasta Deducciones y Desgravaciones ---
+
+function waitFor(findFn, { timeout = 8000, interval = 200 } = {}) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      const el = findFn();
+      if (el) return resolve(el);
+      if (Date.now() - start > timeout) return resolve(null);
+      setTimeout(check, interval);
+    };
+    check();
+  });
+}
+
+function findEmpresaButton() {
+  return document.querySelector(".btn_empresa");
+}
+
+function findCargaFormularioButton() {
+  const span = Array.from(document.querySelectorAll("span.ui-button-text")).find(
+    (s) => s.textContent.trim().toLowerCase() === "carga de formulario"
+  );
+  if (!span) return null;
+  return span.closest("button, a, input[type=button]") || span.parentElement;
+}
+
+function findDeduccionesAnchor() {
+  return (
+    Array.from(document.querySelectorAll('a[href="#header_deducciones"]')).find((a) =>
+      a.textContent.toLowerCase().includes("deducciones y desgravaciones")
+    ) || document.querySelector('a[href="#header_deducciones"]')
+  );
+}
+
+// Ejecuta el paso correspondiente a la pantalla actual del flujo de navegacion
+async function runNavigationStep() {
+  const href = location.href;
+  console.log("[SIRADIG Auto] runNavigationStep en", href);
+
+  if (href.includes("menu_sel_empresa.jsp")) {
+    const btn = await waitFor(findEmpresaButton);
+    console.log("[SIRADIG Auto] boton empresa:", btn);
+    if (!btn) return false;
+    btn.click();
+    return true;
+  }
+
+  if (href.includes("determinarContribuyente.do")) {
+    const btn = await waitFor(findCargaFormularioButton);
+    console.log("[SIRADIG Auto] boton carga formulario:", btn);
+    if (!btn) return false;
+    btn.click();
+    return true;
+  }
+
+  if (href.includes("verMenuDeducciones.do")) {
+    const anchor = await waitFor(findDeduccionesAnchor);
+    console.log("[SIRADIG Auto] anchor deducciones:", anchor);
+    if (!anchor) return false;
+    anchor.click();
+    chrome.storage.local.set({ navFlowActive: false });
+    return true;
+  }
+
+  return false;
+}
+
+// Al cargar cualquier pagina de SIRADIG, continua el flujo si esta activo
+chrome.storage.local.get(["navFlowActive"], (data) => {
+  if (data.navFlowActive) {
+    console.log("[SIRADIG Auto] navFlowActive detectado al cargar la pagina");
+    runNavigationStep();
+  }
+});
 
 // --- Escucha de Mensajes ---
 
@@ -203,10 +250,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return;
   }
 
-  if (message.type === "NAVEGAR_FORMULARIO" || message.type === "START_NAV_FLOW") {
-    const res = navegarAFormularioDeducciones();
-    sendResponse({ ok: true, result: res });
-    return;
+  if (message.type === "START_NAV_FLOW") {
+    chrome.storage.local.set({ navFlowActive: true }, async () => {
+      const ok = await runNavigationStep();
+      sendResponse({ ok });
+    });
+    return true;
   }
 
   if (message.type === "GUARDAR_FORMULARIO") {
