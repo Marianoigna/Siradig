@@ -84,35 +84,42 @@ document.getElementById("guardar").addEventListener("click", async () => {
       : `No se pudo guardar: ${response ? response.error : "error desconocido"}`;
   });
 });
+document.getElementById('btn_cuota_medico').addEventListener('click', () => {
+  chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+    chrome.tabs.sendMessage(tabs[0].id, {type: 'GOTO_CATEGORY', categoriaKey: 'cuota_medico'});
+  });
+});
 
-// --- Escucha de errores de carga ---
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "ERROR_DETECTED") {
-    chrome.storage.local.get(["apiToken"], async (data) => {
-      if (!data.apiToken) return;
-      try {
-        const resp = await fetch(API_BASE + "/api/receipts/pending/", {
-          headers: { Authorization: "Token " + data.apiToken },
-        });
-        if (!resp.ok) return;
-        const receipts = await resp.json();
-        if (receipts.length > 0) {
-          const receipt = receipts[0];
-          await fetch(API_BASE + "/api/receipts/" + receipt.id + "/", {
-            method: "PATCH",
-            headers: {
-              Authorization: "Token " + data.apiToken,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ estado: "error_carga", mensaje_error: message.message || "Error detectado por extension" }),
-          });
-          document.getElementById("status").textContent = "Error detectado en carga: " + (message.message || "");
-        }
-      } catch (e) {
-        console.error("Error guardando estado de error:", e);
+document.getElementById("ir_deducciones").addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.url || !tab.url.includes("serviciosjava2.afip.gob.ar/radig")) {
+    statusEl.textContent = "Primero ingresa a SiRADIG (menu de seleccion de persona) desde el portal AFIP.";
+    return;
+  }
+  statusEl.textContent = "Paso 1: Seleccionando usuario...";
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: () => { document.querySelector('.btn_empresa').click(); }
+  }).catch(err => console.error(err));
+  setTimeout(async () => {
+    statusEl.textContent = "Paso 2: Carga de Formulario...";
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const carga = Array.from(document.querySelectorAll('a, span, button')).find(el => el.textContent.trim().toLowerCase() === 'carga de formulario');
+        if (carga) carga.click();
       }
     });
-    sendResponse({ ok: true });
-    return true;
-  }
+  }, 2500);
+  setTimeout(async () => {
+    statusEl.textContent = "Paso 3: Deducciones...";
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const ded = document.querySelector('a[href="#header_deducciones"]') || Array.from(document.querySelectorAll('a[href="#header_deducciones"]')).find(a => a.textContent.toLowerCase().includes('deducciones'));
+        if (ded) ded.click();
+      }
+    });
+  }, 6000);
+  statusEl.textContent = "Navegacion iniciada automaticamente. Revisa AFIP.";
 });
