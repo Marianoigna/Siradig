@@ -53,7 +53,7 @@ document.getElementById("auto_cargar").addEventListener("click", async () => {
     cuit_emisor: "27273080622",
     Periodo: "9",
     importe_total: 250000,
-    fecha_emision: "15/09/2025",
+    fecha_emision: "15/09/2026",
     tipo_comprobante: "Factura B",
     letra: "B",
     numero_comprobante: "001-00000001",

@@ -1,19 +1,44 @@
 import asyncio
 from playwright.async_api import async_playwright
+import requests
+API_URL = "https://siradig.onrender.com/api/receipts/pending/"
+TOKEN = "tu_token_aqui"
 
-DATOS = {
-    "fecha_emision": "15/06/2026",
-    "cuit_emisor": "27273080622",
-    "Periodo": "9",
-    "razon_social": "ASIM LAURA SOLEDAD",
-    "tipo_comprobante": "Factura B",
-    "letra": "B",
-    "numero_comprobante": "001-00000001",
-    "importe_total": 250000,
-    "categoria": "Gastos médicos y paramédicos"
-}
+def obtener_recibo_db():
+    try:
+        headers = {"Authorization": f"Token {TOKEN}"} if TOKEN != "tu_token_aqui" else {}
+        resp = requests.get(API_URL, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            datos = resp.json()
+            if datos and len(datos) > 0:
+                r = datos[0]
+                return {
+                    "fecha_emision": r.get("fecha_emision", "15/06/2026"),
+                    "cuit_emisor": r.get("cuit_emisor", "20123456789"),
+                    "razon_social": r.get("razon_social", "ASIM LAURA SOLEDAD"),
+                    "tipo_comprobante": r.get("tipo_comprobante", "Factura B"),
+                    "letra": r.get("letra", "B"),
+                    "numero_comprobante": r.get("numero_comprobante", "001-00000001"),
+                    "importe_total": r.get("importe_total", 250000),
+                    "categoria": r.get("categoria_gasto_siradig", "Gastos médicos y paramédicos")
+                }
+        print("No se encontraron recibos pendientes en DB. Usando ejemplo.")
+    except Exception as e:
+        print(f"Error conectando a DB: {e}. Usando ejemplo local.")
+    return {
+        "fecha_emision": "15/06/2026",
+        "cuit_emisor": "20123456789",
+        "razon_social": "ASIM LAURA SOLEDAD",
+        "tipo_comprobante": "Factura B",
+        "letra": "B",
+        "numero_comprobante": "001-00000001",
+        "importe_total": 250000,
+        "categoria": "Gastos médicos y paramédicos"
+    }
 
 async def autocompletar_siradig():
+    DATOS = obtener_recibo_db()
+    print("Datos cargados (DB o local):", DATOS["razon_social"], "- Fecha:", DATOS["fecha_emision"])
     print("Conectando a Chrome con Playwright...")
     async with async_playwright() as p:
         try:
@@ -47,12 +72,14 @@ async def autocompletar_siradig():
             print("Paso 12: Monto OK")
             await page.fill("#cmpMontoReintegrado", "0")
             print("Paso 13: Reintegrado = 0 OK")
+            await asyncio.sleep(1)
             await page.click("text=Agregar")
             print("Paso 14: Agregar OK")
             await page.wait_for_timeout(800)
             await page.click("text=Guardar")
             print("Paso 15: Guardar OK")
-            print("\nCarga automatica completada con Playwright!")
+            print("
+Carga automatica completada con datos de DB o local!")
         except Exception as e:
             print(f"Error: {e}")
 
