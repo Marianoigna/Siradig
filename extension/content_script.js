@@ -154,17 +154,30 @@ async function fillReceipt(receipt) {
     }
 
     setValue("#cmpMontoFacturado", receipt.importe_total);
+    
+    // Paso: Monto Reintegrado = 0 con espera para que AFIP lo registre
+    setValue("#cmpMontoReintegrado", "0");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     pendientes.push("Monto Reintegrado - completar a mano");
   } else {
     pendientes.push("Formulario interno no reconocido");
   }
 
-  // 5. Intentar cerrar/agregar
+    // 5. Intentar cerrar/agregar y guardar
   const botonAgregar = findButtonByText("Agregar");
   if (botonAgregar) {
     botonAgregar.click();
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   } else {
     pendientes.push("No se pudo hacer click automático en 'Agregar'");
+  }
+  
+  // Paso: Guardar formulario (después de agregar)
+  const botonGuardar = findButtonByText("Guardar");
+  if (botonGuardar) {
+    botonGuardar.click();
+    console.log("[SIRADIG Auto] Paso: Guardar OK");
   }
 
   return pendientes;
