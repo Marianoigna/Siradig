@@ -55,7 +55,7 @@ async def autocompletar_siradig():
             await page.wait_for_selector("#numeroDoc", timeout=5000)
             await page.fill("#numeroDoc", DATOS["cuit_emisor"])
             print("Paso 5: CUIT OK")
-            mes = DATOS["fecha_emision"].split("/")[1]
+            mes = str(int(DATOS["fecha_emision"].split("/")[1]))
             await page.select_option("#mesDesde", mes)
             print(f"Paso 6: Mes {mes} OK")
             await page.click("#btn_alta_comprobante")

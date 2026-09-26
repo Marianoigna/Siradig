@@ -50,7 +50,7 @@ function inferConcepto(categoria) {
 function inferMes(fechaEmision) {
   const match = (fechaEmision || "").match(/^\d{1,2}\/(\d{1,2})\/\d{4}$/);
   if (!match) return null;
-  return String(parseInt(match[1], 10));
+  return str(int(match[1]))
 }
 
 function inferTipoComprobante(tipo, letra) {
