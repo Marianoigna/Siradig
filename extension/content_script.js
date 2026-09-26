@@ -130,10 +130,8 @@ async function fillReceipt(receipt) {
     // Seleccionar mes desde fecha de emisión
     const mes = inferMes(receipt.fecha_emision);
     if (mes && exists("#mesDesde")) {
-      const sel = document.querySelector("#mesDesde");
-      if (sel) { sel.value = mes; sel.dispatchEvent(new Event("change", { bubbles: true })); }
       setValue("#mesDesde", mes);
-      console.log("[SIRADIG Auto] Paso: Mes seleccionado (change event):", mes);
+      console.log("[SIRADIG Auto] Paso: Mes seleccionado:", mes);
     }
 
     const tipoValue = inferTipoComprobante(receipt.tipo_comprobante, receipt.letra);
