@@ -90,7 +90,14 @@ async function fillReceipt(receipt) {
     if (exists("#numeroDoc")) pendientes.push("CUIT (#numeroDoc)");
   }
 
-  // 2. Campos previos según categoría
+    // 2. Campos previos según categoría (mes antes de Alta)
+  if (exists("#mesDesde")) {
+    const mes = inferMes(receipt.fecha_emision);
+    if (mes) {
+      setValue("#mesDesde", mes);
+      console.log("[SIRADIG Auto] Paso: Mes seleccionado antes de Alta:", mes);
+    }
+  }
   if (exists("#idConcepto")) {
     setValue("#idConcepto", inferConcepto(receipt.categoria_gasto_siradig));
   }
