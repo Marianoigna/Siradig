@@ -78,8 +78,7 @@ async def autocompletar_siradig():
             await page.wait_for_timeout(800)
             await page.click("text=Guardar")
             print("Paso 15: Guardar OK")
-            print("
-Carga automatica completada con datos de DB o local!")
+            print("Carga automatica completada con datos de DB o local!")
         except Exception as e:
             print(f"Error: {e}")
 
