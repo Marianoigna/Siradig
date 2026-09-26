@@ -79,6 +79,13 @@ async def autocompletar_siradig():
             await page.click("text=Guardar")
             print("Paso 15: Guardar OK")
             print("Carga automatica completada con datos de DB o local!")
+            # Confirmar carga en DB (actualizar estado)
+            try:
+                confirm_url = f"https://siradig.onrender.com/api/receipts/{DATOS['numero_comprobante']}/confirm/"
+                confirm_resp = requests.put(confirm_url, headers={"Authorization": f"Token {TOKEN}"}, timeout=5)
+                print("DB Confirmación:", confirm_resp.status_code, confirm_resp.text)
+            except Exception as e:
+                print("DB Confirmación fallida:", e)
         except Exception as e:
             print(f"Error: {e}")
 
