@@ -30,6 +30,23 @@ document.getElementById("ir_deducciones").addEventListener("click", async () => 
 });
 
 document.getElementById("auto_cargar").addEventListener("click", async () => {
+  statusEl.textContent = "Navegando a formulario...";
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) { statusEl.textContent = "No se encontro pestaña."; return; }
+
+  // Si esta en menu o deducciones, navegar al formulario
+  if (tab.url && (tab.url.includes("verMenuDeducciones") || tab.url.includes("verGastosMedicos"))) {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const link = document.getElementById("link_agregar_gastos_medicos") || Array.from(document.querySelectorAll("a, button, span, input")).find(el => (el.textContent || "").toLowerCase().includes("gastos médicos"));
+        if (link) link.click();
+        else console.log("[Auto] Link no encontrado");
+      }
+    });
+    await new Promise(r => setTimeout(r, 2500));
+  }
+
   statusEl.textContent = "Cargando datos...";
   const receipt = {
     razon_social: "ASIM LAURA SOLEDAD",
