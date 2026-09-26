@@ -45,6 +45,11 @@ document.getElementById("auto_cargar").addEventListener("click", async () => {
     statusEl.textContent = "⚠️ Abrí SIRADIG primero.";
     return;
   }
+  // NAVEGACION DIRECTA al formulario de Gastos Medicos
+  if (!tab.url.includes("verGastosMedicos")) {
+    await chrome.tabs.update(tab.id, { url: "https://serviciosjava2.afip.gob.ar/radig/jsp/verGastosMedicos.do" });
+    await new Promise(r => setTimeout(r, 1500));
+  }
   statusEl.textContent = "Consultando facturas pendientes...";
   const tokenData = await new Promise(r => chrome.storage.local.get(["apiToken"], r));
   const token = tokenData.apiToken?.trim() || "";
