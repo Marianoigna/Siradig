@@ -73,7 +73,7 @@ document.getElementById("auto_cargar").addEventListener("click", async () => {
     target: { tabId: tab.id },
     func: (r) => {
       const linkMedico = document.getElementById("link_agregar_gastos_medicos");
-      if (linkMedico) { console.log("[SIRADIG Auto] Paso 4: Click link medicos"); linkMedico.click(); }
+      if (linkMedico) { console.log("[SIRADIG Auto] Paso 4: Click link medicos"); linkMedico.click();         await new Promise(r => { const chk = () => { if (document.URL.includes("verGastosMedicos") || document.URL.includes("verMenuDeducciones")) return r(); setTimeout(chk, 400); }; chk(); }); }
       else { console.log("[SIRADIG Auto] ERROR: No encontro link"); return; }
 
       function waitFor(s, t=8000) {
