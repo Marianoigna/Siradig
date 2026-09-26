@@ -91,43 +91,28 @@ document.getElementById('btn_cuota_medico').addEventListener('click', () => {
 });
 
 document.getElementById("auto_cargar").addEventListener("click", async () => {
-  statusEl.textContent = "Buscando proximo comprobante...";
-  const { apiToken } = await chrome.storage.local.get(["apiToken"]);
-  if (!apiToken) {
-    statusEl.textContent = "Primero guarda tu token.";
-    return;
-  }
-
-  let receipt;
-  try {
-    const resp = await fetch(`${API_BASE}/api/receipts/pending/`, {
-      headers: { Authorization: `Token ${apiToken}` },
-    });
-    if (!resp.ok) throw new Error(`API respondio ${resp.status}`);
-    const receipts = await resp.json();
-    if (!receipts || receipts.length === 0) {
-      statusEl.textContent = "No hay comprobantes pendientes.";
-      return;
-    }
-    receipt = receipts[0];
-  } catch (err) {
-    statusEl.textContent = `Error consultando la API: ${err.message}`;
-    return;
-  }
-
-  statusEl.textContent = `Cargando: ${receipt.razon_social} ($${receipt.importe_total})`;
-
+  statusEl.textContent = "Probando carga automatica (paso 4 en adelante)...";
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) {
     statusEl.textContent = "No se encontro una pestana activa.";
     return;
   }
 
-  // Inyectar flujo completo en la pagina pasando el receipt como argumento
+  // Usar receipt de ejemplo para probar desde el paso 4 (click link medicos)
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    func: (receiptData) => {
-      // Helpers
+    func: () => {
+      // Simplified version: starts at clicking the medical link
+      const linkMedico = document.getElementById("link_agregar_gastos_medicos");
+      if (linkMedico) { 
+        console.log("[SIRADIG Auto] Paso 4: Click link medicos");
+        linkMedico.click(); 
+      } else {
+        console.log("[SIRADIG Auto] ERROR: No encontro link_agregar_gastos_medicos");
+        return;
+      }
+
+      // Helper functions (same as before)
       function waitFor(selector, timeout = 8000) {
         return new Promise((resolve) => {
           const start = Date.now();
@@ -179,18 +164,26 @@ document.getElementById("auto_cargar").addEventListener("click", async () => {
         return String(parseInt(match[1], 10));
       }
 
-      console.log("[SIRADIG Auto] Carga automatica iniciada para:", receiptData.razon_social);
+      const receipt = {
+        razon_social: "ASIM LAURA SOLEDAD",
+        cuit_emisor: "20123456789",
+        importe_total: 250000,
+        fecha_emision: "15/06/2025",
+        tipo_comprobante: "Factura B",
+        letra: "B",
+        numero_comprobante: "001-00000001",
+        numero_solo: "00000001",
+        punto_venta: "001",
+        categoria_gasto_siradig: "Gastos médicos y paramédicos"
+      };
 
       (async () => {
-        // PASO 1: Click "Gastos medicos y paramedicos" (ID unico)
-        const linkMedico = document.getElementById("link_agregar_gastos_medicos");
-        if (linkMedico) { console.log("[SIRADIG Auto] Paso 1: Click link medicos"); linkMedico.click(); }
-        else { console.log("[SIRADIG Auto] Paso 1: No encontro link"); return; }
         await waitFor("#numeroDoc");
-
-        // PASO 2: CUIT
-        const okCuit = setValue("#numeroDoc", receiptData.cuit_emisor);
-        console.log("[SIRADIG Auto] Paso 2: CUIT =", receiptData.cuit_emisor, "OK:", okCuit);
+        console.log("[SIRADIG Auto] Esperando formulario...");
+        
+        // PASO 5: CUIT
+        const okCuit = setValue("#numeroDoc", receipt.cuit_emisor);
+        console.log("[SIRADIG Auto] Paso 5: CUIT =", receipt.cuit_emisor, "OK:", okCuit);
         const cuitEl = document.querySelector("#numeroDoc");
         if (cuitEl) cuitEl.dispatchEvent(new Event("blur", { bubbles: true }));
         await new Promise(r => setTimeout(r, 800));
@@ -205,56 +198,80 @@ document.getElementById("auto_cargar").addEventListener("click", async () => {
           return;
         }
 
-        // PASO 3: Periodo (mes)
-        const mes = inferMes(receiptData.fecha_emision);
+        // PASO 6: Periodo
+        const mes = inferMes(receipt.fecha_emision);
         if (mes) {
           const select = document.getElementById("mesDesde");
           if (select) select.value = mes;
-          console.log("[SIRADIG Auto] Paso 3: Mes =", mes);
+          console.log("[SIRADIG Auto] Paso 6: Mes =", mes);
         }
 
-        // PASO 4: Alta de Comprobante
+        // PASO 7: Alta de Comprobante
         const btnAlta = document.getElementById("btn_alta_comprobante");
-        if (btnAlta) { console.log("[SIRADIG Auto] Paso 4: Click Alta"); btnAlta.click(); }
-        else { console.log("[SIRADIG Auto] Paso 4: No btn Alta"); return; }
+        if (btnAlta) { 
+          console.log("[SIRADIG Auto] Paso 7: Click Alta"); 
+          btnAlta.click(); 
+        } else { 
+          console.log("[SIRADIG Auto] Paso 7: No btn Alta"); 
+          return; 
+        }
         await waitFor("#cmpFechaEmision");
 
-        // PASO 5: Fecha
-        setValue("#cmpFechaEmision", receiptData.fecha_emision);
-        console.log("[SIRADIG Auto] Paso 5: Fecha =", receiptData.fecha_emision);
+        // PASO 8: Fecha
+        setValue("#cmpFechaEmision", receipt.fecha_emision);
+        console.log("[SIRADIG Auto] Paso 8: Fecha =", receipt.fecha_emision);
 
-        // PASO 6: Tipo
-        const tipoValue = inferTipo(receiptData.tipo_comprobante, receiptData.letra);
-        if (tipoValue) { setValue("#cmpTipo", tipoValue); console.log("[SIRADIG Auto] Paso 6: Tipo =", tipoValue); }
-
-        // PASO 6.5: Concepto
-        if (document.querySelector("#idConcepto")) {
-          setValue("#idConcepto", inferConcepto(receiptData.categoria_gasto_siradig));
+        // PASO 9: Tipo
+        const tipoValue = inferTipo(receipt.tipo_comprobante, receipt.letra);
+        if (tipoValue) { 
+          setValue("#cmpTipo", tipoValue); 
+          console.log("[SIRADIG Auto] Paso 9: Tipo =", tipoValue); 
         }
 
-        // PASO 7: Numero de comprobante
-        if (receiptData.punto_venta) { setValue("#cmpPuntoVenta", receiptData.punto_venta); }
-        else { const split = splitLegacy(receiptData.numero_comprobante); setValue("#cmpPuntoVenta", split.puntoVenta); }
-        if (receiptData.numero_solo) { setValue("#cmpNumero", receiptData.numero_solo); }
-        else { const split = splitLegacy(receiptData.numero_comprobante); setValue("#cmpNumero", split.numero); }
-        console.log("[SIRADIG Auto] Paso 7: Numero cargado");
+        // PASO 10: Concepto (si existe)
+        if (document.querySelector("#idConcepto")) {
+          setValue("#idConcepto", inferConcepto(receipt.categoria_gasto_siradig));
+        }
 
-        // PASO 8: Monto
-        setValue("#cmpMontoFacturado", receiptData.importe_total);
-        console.log("[SIRADIG Auto] Paso 8: Monto =", receiptData.importe_total);
+        // PASO 11: Numero de comprobante
+        if (receipt.punto_venta) { 
+          setValue("#cmpPuntoVenta", receipt.punto_venta); 
+        } else { 
+          const split = splitLegacy(receipt.numero_comprobante); 
+          setValue("#cmpPuntoVenta", split.puntoVenta); 
+        }
+        if (receipt.numero_solo) { 
+          setValue("#cmpNumero", receipt.numero_solo); 
+        } else { 
+          const split = splitLegacy(receipt.numero_comprobante); 
+          setValue("#cmpNumero", split.numero); 
+        }
+        console.log("[SIRADIG Auto] Paso 11: Numero cargado");
 
-        // PASO 9: Monto reintegrado = 0
+        // PASO 12: Monto
+        setValue("#cmpMontoFacturado", receipt.importe_total);
+        console.log("[SIRADIG Auto] Paso 12: Monto =", receipt.importe_total);
+
+        // PASO 13: Monto reintegrado = 0
         const montoReint = document.querySelector("#cmpMontoReintegrado");
-        if (montoReint) { montoReint.value = "0"; montoReint.dispatchEvent(new Event("input", { bubbles: true })); }
-        console.log("[SIRADIG Auto] Paso 9: Monto Reintegrado = 0");
+        if (montoReint) { 
+          montoReint.value = "0"; 
+          montoReint.dispatchEvent(new Event("input", { bubbles: true })); 
+        }
+        console.log("[SIRADIG Auto] Paso 13: Monto Reintegrado = 0");
 
-        // PASO 10: Click "Agregar"
+        // PASO 14: Click "Agregar"
         const btnAgregar = findByText("Agregar");
-        if (btnAgregar) { console.log("[SIRADIG Auto] Paso 10: Click Agregar"); btnAgregar.click(); }
-        else { console.log("[SIRADIG Auto] Paso 10: No btn Agregar"); return; }
+        if (btnAgregar) { 
+          console.log("[SIRADIG Auto] Paso 14: Click Agregar"); 
+          btnAgregar.click(); 
+        } else { 
+          console.log("[SIRADIG Auto] Paso 14: No btn Agregar"); 
+          return; 
+        }
         await new Promise(r => setTimeout(r, 800));
 
-        // PASO 11: Error -> Cancelar
+        // PASO 15: Error -> Cancelar
         const errorForm = document.querySelector(".validation-error, .error, .ui-state-error") ||
                           Array.from(document.querySelectorAll("label, span, div")).find(e => e.textContent.trim().toLowerCase().includes("error"));
         if (errorForm) {
@@ -264,28 +281,29 @@ document.getElementById("auto_cargar").addEventListener("click", async () => {
           return;
         }
 
-        // PASO 12: Click "Guardar"
+        // PASO 16: Click "Guardar"
         setTimeout(() => {
           const btnGuardar = findByText("Guardar");
-          if (btnGuardar) { console.log("[SIRADIG Auto] Paso 12: Click Guardar"); btnGuardar.click(); }
-          else { console.log("[SIRADIG Auto] Paso 12: No btn Guardar"); }
+          if (btnGuardar) { 
+            console.log("[SIRADIG Auto] Paso 16: Click Guardar"); 
+            btnGuardar.click(); 
+          } else { 
+            console.log("[SIRADIG Auto] Paso 16: No btn Guardar"); 
+          }
         }, 1000);
 
-        console.log("[SIRADIG Auto] Carga automatica completada para", receiptData.razon_social);
+        console.log("[SIRADIG Auto] Carga automatica completada para", receipt.razon_social);
       })().catch(err => {
         console.error("[SIRADIG Auto] Error en carga automatica:", err);
         const cancelar = findByText("Cancelar");
         if (cancelar) cancelar.click();
       });
     },
-    args: [receipt],
   }).catch(err => {
     console.error("[SIRADIG Auto] Error inyectando script:", err);
     statusEl.textContent = "Error: " + err.message;
   });
-});
-
-document.getElementById("ir_deducciones").addEventListener("click", async () => {
+});document.getElementById("ir_deducciones").addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !tab.url || !tab.url.includes("serviciosjava2.afip.gob.ar/radig")) {
     statusEl.textContent = "Primero ingresa a SiRADIG (menu de seleccion de persona) desde el portal AFIP.";
