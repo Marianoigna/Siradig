@@ -60,9 +60,9 @@ document.getElementById("auto_cargar").addEventListener("click", async () => {
     numero_solo: "00000001",
     categoria_gasto_siradig: "Gastos médicos y paramédicos"
   };
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab2] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) { statusEl.textContent = "No se encontro pestaña activa."; return; }
-  chrome.tabs.sendMessage(tab.id, { type: "FILL_RECEIPT", receipt }, (resp) => {
+  chrome.tabs.sendMessage(tab2.id, { type: "FILL_RECEIPT", receipt }, (resp) => {
     if (chrome.runtime.lastError) { statusEl.textContent = "Abre el formulario de Gastos Médicos primero."; return; }
     statusEl.textContent = resp && resp.ok ? (resp.warning ? "Completado (falta: " + resp.warning + ")" : "Datos cargados. Revisa y guarda.") : "No se pudo completar";
   });
