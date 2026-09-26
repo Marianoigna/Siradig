@@ -117,7 +117,14 @@ async function fillReceipt(receipt) {
   } 
   // Caso Comprobante Estándar (Médicos, Indumentaria, etc.)
   else if (exists("#cmpFechaEmision")) {
-    if (!setValue("#cmpFechaEmision", receipt.fecha_emision)) pendientes.push("Fecha (#cmpFechaEmision)");
+        if (!setValue("#cmpFechaEmision", receipt.fecha_emision)) pendientes.push("Fecha (#cmpFechaEmision)");
+
+    // Seleccionar mes desde fecha de emisión
+    const mes = inferMes(receipt.fecha_emision);
+    if (mes && exists("#mesDesde")) {
+      setValue("#mesDesde", mes);
+      console.log("[SIRADIG Auto] Paso: Mes seleccionado:", mes);
+    }
 
     const tipoValue = inferTipoComprobante(receipt.tipo_comprobante, receipt.letra);
     if (!tipoValue || !setValue("#cmpTipo", tipoValue)) {
