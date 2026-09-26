@@ -2,7 +2,7 @@ import asyncio
 from playwright.async_api import async_playwright
 
 DATOS = {
-    "fecha_emision": "15/06/2025",
+    "fecha_emision": "15/06/2026",
     "cuit_emisor": "27273080622",
     "Periodo": "9",
     "razon_social": "ASIM LAURA SOLEDAD",
