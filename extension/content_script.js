@@ -103,7 +103,8 @@ async function fillReceipt(receipt) {
   }
   
   // 3. Abrir Modal de Alta
-  const botonAlta = findAltaButton();
+  let botonAlta = null;
+  for (let i = 0; i < 25; i++) { botonAlta = findAltaButton(); if (botonAlta) break; await new Promise(r => setTimeout(r, 200)); }
   if (!botonAlta) {
     pendientes.push("No se encontró botón para iniciar la carga (Alta/Agregar)");
     return pendientes;
