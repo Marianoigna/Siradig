@@ -50,7 +50,8 @@ document.getElementById("auto_cargar").addEventListener("click", async () => {
   statusEl.textContent = "Cargando datos...";
   const receipt = {
     razon_social: "ASIM LAURA SOLEDAD",
-    cuit_emisor: "20123456789",
+    cuit_emisor: "27273080622",
+    Periodo: "9",
     importe_total: 250000,
     fecha_emision: "15/06/2025",
     tipo_comprobante: "Factura B",
