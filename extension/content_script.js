@@ -65,14 +65,19 @@ function inferTipoComprobante(tipo, letra) {
 }
 
 function findAltaButton() {
-  return (
-    document.querySelector("#btn_alta_comprobante") || 
-    document.querySelector("#btn_alta_mes") ||
-    Array.from(document.querySelectorAll("a, button, input[type=button]")).find((el) => {
-      const txt = (el.textContent || el.value || "").toLowerCase();
-      return txt.includes("alta de comprobante") || txt.includes("agregar mes individual");
-    })
-  );
+  // Buscar por ID primero
+  const ids = ["#btn_alta_comprobante", "#btn_alta_mes", "#btn_alta", "#alta_comprobante", "#agregar"];
+  for (const id of ids) {
+    const el = document.querySelector(id);
+    if (el) return el;
+  }
+  // Buscar por texto amplio
+  const candidatos = Array.from(document.querySelectorAll("a, button, input[type=button], span"));
+  const posibles = candidatos.filter((el) => {
+    const txt = (el.textContent || el.value || "").toLowerCase();
+    return txt.includes("alta") || txt.includes("agregar") || txt.includes("nuevo comprobante") || txt.includes("agregar comprobante") || txt.includes("cargar comprobante");
+  });
+  return posibles[0] || null;
 }
 
 // --- Acción Principal ---
