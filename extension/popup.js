@@ -45,6 +45,19 @@ document.getElementById("auto_cargar").addEventListener("click", async () => {
     statusEl.textContent = "⚠️ Abrí SIRADIG primero.";
     return;
   }
+  statusEl.textContent = "Navegando a Gastos Medicos...";
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: () => {
+      if (location.href.includes("verGastosMedicos")) return;
+      const link = document.getElementById("link_agregar_gastos_medicos") ||
+        Array.from(document.querySelectorAll("a, button, span, input")).find(
+          (el) => (el.textContent || "").toLowerCase().includes("gastos medicos")
+        );
+      if (link) link.click();
+    }
+  });
+  await new Promise(r => setTimeout(r, 2500));
   statusEl.textContent = "Consultando facturas pendientes...";
   const tokenData = await new Promise(r => chrome.storage.local.get(["apiToken"], r));
   const token = tokenData.apiToken?.trim() || "";
