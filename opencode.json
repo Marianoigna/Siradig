@@ -1,0 +1,20 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["npx", "-y", "chrome-devtools-mcp@latest", "--autoConnect"],
+      "enabled": true
+  },
+    "postgres": {
+      "type": "local",
+      "command": [
+        "npx", 
+        "-y", 
+        "@modelcontextprotocol/server-postgres", 
+        "postgresql://siradig_db_user:VFrZyo6ZRmBMIXaliRy7OtjQ5qp6XYvJ@dpg-dap9ep2jnfac73b0bnag-a/siradig_db"
+      ],
+      "enabled": true
+    }
+  }
+}
