@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}SIRADIG Auto — Automatización de F572 AFIP{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="py-5 bg-white border-bottom">
+    <div class="container py-4 text-center">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill mb-3 fw-medium">
+                    <i class="bi bi-robot me-1"></i> Telegram + Gemini IA OCR + Extensión Web
+                </span>
+                <h1 class="display-4 fw-bold text-dark mb-3">Automatizá tus deducciones en SIRADIG AFIP/ARCA</h1>
+                <p class="lead text-secondary mb-4">
+                    Olvidate de cargar comprobantes a mano en el Formulario 572 web. Enviá fotos de tus facturas por Telegram, nuestra IA extrae los datos y cargalos con un clic en AFIP.
+                </p>
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg px-4 shadow-sm fw-semibold">
+                        <i class="bi bi-rocket-takeoff-fill me-2"></i>Registrarse Gratis
+                    </a>
+                    <a href="{% url 'account_login' %}" class="btn btn-outline-secondary btn-lg px-4 fw-semibold">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Security Banner -->
+<section class="py-3 bg-light border-bottom">
+    <div class="container">
+        <div class="alert alert-info d-flex align-items-center mb-0 shadow-sm border-0" role="alert">
+            <i class="bi bi-shield-lock-fill fs-3 me-3 text-primary"></i>
+            <div>
+                <strong>Seguridad y Privacidad Garantizada:</strong>
+                Nunca solicitamos ni almacenamos tus credenciales de AFIP/ARCA. El inicio de sesión se realiza siempre de manera manual y directa en el portal oficial de AFIP.
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container py-4">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">¿Cómo funciona SIRADIG Auto?</h2>
+            <p class="text-secondary">Tres simples pasos para deducir tus gastos sin esfuerzo.</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Card 1: Telegram Bot -->
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4 text-center">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                            <i class="bi bi-telegram fs-2"></i>
+                        </div>
+                        <h4 class="card-title fw-semibold">Bot de Telegram</h4>
+                        <p class="card-text text-secondary">
+                            Vinculá tu cuenta con nuestro bot en segundos. Solo tenés que sacarle una foto a tu ticket o factura y mandarla como mensaje.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: OCR Inteligente -->
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4 text-center">
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                            <i class="bi bi-cpu fs-2"></i>
+                        </div>
+                        <h4 class="card-title fw-semibold">OCR Inteligente con IA</h4>
+                        <p class="card-text text-secondary">
+                            Gemini IA analiza la imagen, identifica CUIT, fecha, razón social, tipo de comprobante e importe total de forma precisa y estructurada.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Extensión Navegador -->
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4 text-center">
+                        <div class="bg-warning bg-opacity-10 text-warning-emphasis rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                            <i class="bi bi-window-desktop fs-2"></i>
+                        </div>
+                        <h4 class="card-title fw-semibold">Extensión de Navegador</h4>
+                        <p class="card-text text-secondary">
+                            Ingresá a SIRADIG F572 web y dejá que la extensión complete los campos del formulario por vos en un solo clic, sin errores de tipeo.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="py-5 bg-primary text-white text-center">
+    <div class="container py-4">
+        <h2 class="fw-bold mb-3">Empezá a ahorrar tiempo hoy</h2>
+        <p class="lead mb-4 opacity-75">Creá tu cuenta gratis y simplificá tus deducciones impositivas.</p>
+        <a href="{% url 'account_signup' %}" class="btn btn-light btn-lg px-4 text-primary fw-bold shadow-sm">
+            Crear Cuenta Ahora
+        </a>
+    </div>
+</section>
+{% endblock %}

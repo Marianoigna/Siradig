@@ -2,7 +2,7 @@ Django>=5.0
 djangorestframework
 django-cors-headers
 django-environ
-django-allauth
+django-allauth==65.4.1
 psycopg2-binary
 pillow
 google-genai
