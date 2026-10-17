@@ -3,6 +3,7 @@ djangorestframework
 django-cors-headers
 django-environ
 django-allauth==65.4.1
+PyJWT==2.10.1
 psycopg2-binary
 pillow
 google-genai
