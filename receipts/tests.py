@@ -307,3 +307,51 @@ class APITests(TestCase):
         self.assertEqual(response.status_code, 200)
         receipt.refresh_from_db()
         self.assertEqual(receipt.estado, "cargado_en_siradig")
+
+    def test_pending_receipts_payload_matches_spec_001_contract(self):
+        """Valida que la respuesta de /api/receipts/pending/ contenga todos los campos requeridos por SPEC-001."""
+        receipt = Receipt.objects.create(
+            user=self.user,
+            origen="telegram",
+            estado="pendiente_carga",
+            fecha_emision="15/06/2026",
+            cuit_emisor="20123456789",
+            razon_social="FARMACIA TEST",
+            tipo_comprobante="Factura",
+            letra="B",
+            numero_comprobante="0001-00001234",
+            punto_venta="0001",
+            numero_solo="00001234",
+            importe_total=15000.50,
+            importe_iva=3150.10,
+            categoria_gasto_siradig="Gastos de Adquisición de Indumentaria y Equipamiento",
+        )
+        response = self.api.get("/api/receipts/pending/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        item = response.data[0]
+
+        expected_fields = [
+            "id",
+            "fecha_emision",
+            "cuit_emisor",
+            "razon_social",
+            "tipo_comprobante",
+            "letra",
+            "numero_comprobante",
+            "punto_venta",
+            "numero_solo",
+            "importe_total",
+            "importe_iva",
+            "categoria_gasto_siradig",
+            "origen",
+            "estado",
+            "created_at",
+        ]
+        for field in expected_fields:
+            self.assertIn(field, item, f"Campo {field} requerido por SPEC-001 no está en el payload")
+
+        self.assertEqual(item["id"], receipt.id)
+        self.assertEqual(item["cuit_emisor"], "20123456789")
+        self.assertEqual(item["punto_venta"], "0001")
+        self.assertEqual(item["numero_solo"], "00001234")
