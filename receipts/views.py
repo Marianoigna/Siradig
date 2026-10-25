@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from rest_framework import generics, permissions
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.models import Token
 
 from .models import Receipt, UserProfile
 from .serializers import ReceiptSerializer
@@ -33,14 +34,31 @@ def landing_page(request):
 @login_required
 def dashboard_home(request):
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
-    receipts = request.user.receipts.order_by("-created_at")
+    token, _ = Token.objects.get_or_create(user=request.user)
+    receipts = Receipt.objects.filter(user=request.user).order_by("-created_at")
+
+    conteo_pendiente_revision = receipts.filter(estado="pendiente_revision").count()
+    conteo_pendiente_carga = receipts.filter(estado="pendiente_carga").count()
+    conteo_cargado = receipts.filter(estado="cargado_en_siradig").count()
+    conteo_error = receipts.filter(estado="error_carga").count()
+    total_deducible_pesos = sum(r.importe_total or 0 for r in receipts)
+    total_comprobantes = receipts.count()
+
     context = {
+        "user": request.user,
         "profile": profile,
+        "token": token.key,
         "receipts": receipts,
-        "pendientes": receipts.filter(estado="pendiente_carga").count(),
-        "cargados": receipts.filter(estado="cargado_en_siradig").count(),
-        "errores_carga": receipts.filter(estado="error_carga").count(),
-        "total_deducible": sum(r.importe_total or 0 for r in receipts),
+        "total_comprobantes": total_comprobantes,
+        "total_deducible_pesos": total_deducible_pesos,
+        "total_deducible": total_deducible_pesos,
+        "conteo_pendiente_revision": conteo_pendiente_revision,
+        "conteo_pendiente_carga": conteo_pendiente_carga,
+        "conteo_cargado": conteo_cargado,
+        "conteo_error": conteo_error,
+        "pendientes": conteo_pendiente_carga,
+        "cargados": conteo_cargado,
+        "errores_carga": conteo_error,
         "telegram_link": f"https://t.me/{settings.TELEGRAM_BOT_USERNAME}?start={profile.telegram_link_token}",
     }
     return render(request, "receipts/dashboard.html", context)

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Términos y Condiciones - SIRADIG Auto{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    <h1 class="h2 fw-bold text-primary mb-4">Términos y Condiciones de Servicio</h1>
+                    <p class="text-muted small mb-4">Última actualización: 25 de octubre de 2026</p>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">1. Propósito y Alcance del Servicio</h2>
+                        <p class="text-secondary">
+                            SIRADIG Auto es una herramienta tecnológica concebida exclusivamente como un asistente para la digitalización, extracción automática mediante inteligencia artificial y precarga asistida de comprobantes de deducciones en el formulario web 572 (SIRADIG) de AFIP/ARCA.
+                        </p>
+                    </section>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">2. Deslinde de Responsabilidad Tributaria y Fiscal</h2>
+                        <p class="text-secondary">
+                            SIRADIG Auto <strong>no constituye asesoramiento impositivo, contable ni legal</strong>. El uso de la plataforma no certifica la deducibilidad tributaria ni la validez fiscal de los comprobantes procesados.
+                        </p>
+                        <p class="text-secondary">
+                            La verificación final, exactitud de la información declarada y el cumplimiento de las normativas vigentes ante la AFIP/ARCA recaen bajo la <strong>exclusiva y total responsabilidad del contribuyente o usuario</strong>.
+                        </p>
+                    </section>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">3. Seguridad y Credenciales de AFIP / ARCA</h2>
+                        <div class="alert alert-info border-0 d-flex align-items-center">
+                            <i class="bi bi-shield-lock-fill fs-3 text-primary me-3"></i>
+                            <div>
+                                <strong>Compromiso inquebrantable de seguridad:</strong> SIRADIG Auto jamás solicita, procesa, transmite ni almacena claves fiscales, contraseñas ni credenciales de acceso al portal de AFIP/ARCA. La autenticación en los portales oficiales la realiza el usuario en su navegador de forma personal y directa.
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">4. Procesamiento Asistido con Inteligencia Artificial (OCR)</h2>
+                        <p class="text-secondary">
+                            La extracción de datos de comprobantes (imágenes o archivos PDF) se realiza a través de modelos de procesamiento de lenguaje natural y visión computacional (Google Gemini API). Debido a la naturaleza probabilística de los modelos de inteligencia artificial, pueden producirse omisiones o discrepancias en la lectura de CUITs, números de factura, fechas o montos. Es deber del usuario revisar los datos en el dashboard antes de su envío a SIRADIG.
+                        </p>
+                    </section>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">5. Limitación de Responsabilidad</h2>
+                        <p class="text-secondary">
+                            El servicio se provee "tal cual" (as-is). No garantizamos la disponibilidad ininterrumpida de servicios de terceros (como Telegram, APIs de IA o los servidores de AFIP/ARCA). En ningún caso seremos responsables por pérdidas, multas o discrepancias fiscales derivadas del uso de la aplicación o de caídas en servicios externos.
+                        </p>
+                    </section>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">6. Modificaciones de los Términos</h2>
+                        <p class="text-secondary">
+                            Nos reservamos el derecho de actualizar estos términos en función de cambios regulatorios o técnicos en la plataforma. Las modificaciones sustanciales serán notificadas a través del sitio web.
+                        </p>
+                    </section>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">7. Contacto y Soporte</h2>
+                        <p class="text-secondary">
+                            Para consultas, dudas sobre los términos o soporte técnico, comuníquese directamente a la casilla oficial de contacto:
+                        </p>
+                        <p>
+                            <a href="mailto:marianoignaszewski@gmail.com" class="fw-semibold text-primary">
+                                <i class="bi bi-envelope-fill me-1"></i>marianoignaszewski@gmail.com
+                            </a>
+                        </p>
+                    </section>
+
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'landing' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i>Volver al Inicio
+                        </a>
+                        <a href="{% url 'privacy' %}" class="btn btn-outline-primary btn-sm">
+                            Ver Política de Privacidad<i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

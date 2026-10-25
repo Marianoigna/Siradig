@@ -1,43 +1,253 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>SIRADIG Auto - Dashboard</title>
-</head>
-<body>
-    <h1>Hola, {{ request.user.first_name|default:request.user.username }}</h1>
+{% extends "base.html" %}
 
-    <h2>Resumen</h2>
-    <ul>
-        <li>Comprobantes pendientes de carga en SIRADIG: {{ pendientes }}</li>
-        <li>Comprobantes ya cargados: {{ cargados }}</li>
-        <li>Comprobantes con <b>error en carga</b>: {{ errores_carga }}</li>
-        <li>Total deducible acumulado: ${{ total_deducible }}</li>
-    </ul>
+{% block title %}Dashboard - SIRADIG Auto{% endblock %}
 
-    <p><a href="https://auth.afip.gob.ar/contribuyente_/login.xhtml" target="_blank">Ir a ARCA / AFIP</a></p>
+{% block content %}
+<div class="container py-4">
+    <!-- Header / Bienvenida y Acciones -->
+    <div class="row align-items-center mb-4 gy-3">
+        <div class="col-12 col-md-7">
+            <h1 class="h3 fw-bold mb-1">
+                ¡Hola, {{ request.user.first_name|default:request.user.username }}!
+            </h1>
+            <p class="text-muted mb-0">
+                <i class="bi bi-envelope me-1"></i>{{ request.user.email|default:request.user.username }}
+                {% if profile.telegram_chat_id %}
+                    <span class="badge bg-success-subtle text-success ms-2 border border-success-subtle">
+                        <i class="bi bi-check-circle-fill me-1"></i>Telegram vinculado
+                    </span>
+                {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary ms-2 border border-secondary-subtle">
+                        <i class="bi bi-dash-circle me-1"></i>Telegram no vinculado
+                    </span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="col-12 col-md-5 d-flex gap-2 justify-content-md-end flex-wrap">
+            <a href="{{ telegram_link }}" class="btn btn-primary d-inline-flex align-items-center shadow-sm" target="_blank" rel="noopener noreferrer">
+                <i class="bi bi-telegram me-2 fs-5"></i>
+                {% if profile.telegram_chat_id %}Abrir Telegram{% else %}Vincular Telegram{% endif %}
+            </a>
+            <a href="https://auth.afip.gob.ar/contribuyente_/login.xhtml" class="btn btn-outline-secondary d-inline-flex align-items-center shadow-sm" target="_blank" rel="noopener noreferrer">
+                <i class="bi bi-box-arrow-up-right me-2"></i>Ir a AFIP / ARCA
+            </a>
+        </div>
+    </div>
 
-    <h2>Vincular Telegram</h2>
-    <p>Abrí este link desde tu celular para empezar a enviar comprobantes: <a href="{{ telegram_link }}">{{ telegram_link }}</a></p>
+    <!-- Sección de Token para Extensión del Navegador -->
+    <div class="card border-0 shadow-sm mb-4 bg-white">
+        <div class="card-body p-4">
+            <div class="row align-items-center gy-3">
+                <div class="col-12 col-lg-5">
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-puzzle text-primary fs-4 me-2"></i>
+                        <h2 class="h5 fw-bold mb-0">Extensión de Navegador</h2>
+                    </div>
+                    <p class="text-muted small mb-0">
+                        Copiá este Token API y pegalo en la extensión de Chrome para sincronizar los comprobantes directamente en SIRADIG.
+                    </p>
+                </div>
+                <div class="col-12 col-lg-7">
+                    <div class="input-group">
+                        <input type="text" id="extension-token-input" class="form-control font-monospace bg-light" value="{{ token }}" readonly aria-label="Token DRF para extensión de navegador">
+                        <button type="button" id="btn-copy-token" class="btn btn-primary d-inline-flex align-items-center" onclick="copiarToken()">
+                            <i class="bi bi-clipboard me-1" id="btn-copy-icon"></i>
+                            <span id="btn-copy-text">Copiar Token</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <h2>Token para la extensión del navegador</h2>
-    <p>Pegá este token en la extensión: <code>{{ profile.user.auth_token.key }}</code></p>
+    <!-- Grid de Tarjetas / KPIs -->
+    <div class="row g-3 mb-4">
+        <!-- Total Comprobantes -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Total Comprobantes</div>
+                    <div class="fs-3 fw-bold text-dark">{{ total_comprobantes }}</div>
+                    <div class="text-muted small mt-1"><i class="bi bi-receipt me-1"></i>Registrados</div>
+                </div>
+            </div>
+        </div>
+        <!-- Total Deducible Acumulado -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Total Deducible</div>
+                    <div class="fs-4 fw-bold text-success text-truncate" title="${{ total_deducible_pesos|floatformat:2 }}">${{ total_deducible_pesos|floatformat:2 }}</div>
+                    <div class="text-muted small mt-1"><i class="bi bi-currency-dollar me-1"></i>Pesos ARS</div>
+                </div>
+            </div>
+        </div>
+        <!-- Pendientes de Revisión -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 border-start border-secondary border-4">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Pendientes Revisión</div>
+                    <div class="fs-3 fw-bold text-secondary">{{ conteo_pendiente_revision }}</div>
+                    <div class="text-muted small mt-1"><i class="bi bi-hourglass-split me-1"></i>En proceso OCR</div>
+                </div>
+            </div>
+        </div>
+        <!-- Pendientes de Carga -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Pendientes Carga</div>
+                    <div class="fs-3 fw-bold text-warning">{{ conteo_pendiente_carga }}</div>
+                    <div class="text-muted small mt-1"><i class="bi bi-arrow-up-circle me-1"></i>Listos para enviar</div>
+                </div>
+            </div>
+        </div>
+        <!-- Cargados en SIRADIG -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Cargados SIRADIG</div>
+                    <div class="fs-3 fw-bold text-success">{{ conteo_cargado }}</div>
+                    <div class="text-muted small mt-1"><i class="bi bi-check2-circle me-1"></i>Confirmados</div>
+                </div>
+            </div>
+        </div>
+        <!-- Error de Carga -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Errores de Carga</div>
+                    <div class="fs-3 fw-bold text-danger">{{ conteo_error }}</div>
+                    <div class="text-muted small mt-1"><i class="bi bi-exclamation-triangle me-1"></i>Requieren atención</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <h2>Comprobantes</h2>
-    <table border="1" cellpadding="4">
-        <tr>
-            <th>Fecha</th><th>Razón Social</th><th>Importe</th><th>Categoría</th><th>Origen</th><th>Estado</th>
-        </tr>
-        {% for r in receipts %}
-        <tr>
-            <td>{{ r.fecha_emision }}</td>
-            <td>{{ r.razon_social }}</td>
-            <td>{{ r.importe_total }}</td>
-            <td>{{ r.categoria_gasto_siradig }}</td>
-            <td>{{ r.get_origen_display }}</td>
-            <td>{{ r.get_estado_display }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-</body>
-</html>
+    <!-- Tabla de Comprobantes -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-0">
+            <div class="d-flex align-items-center justify-content-between">
+                <h2 class="h5 fw-bold mb-0">
+                    <i class="bi bi-table me-2 text-primary"></i>Comprobantes Procesados
+                </h2>
+                <span class="badge bg-light text-dark border">{{ receipts|length }} items</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if receipts %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" class="ps-3">Fecha</th>
+                                <th scope="col">CUIT Emisor</th>
+                                <th scope="col">Razón Social</th>
+                                <th scope="col">Factura N°</th>
+                                <th scope="col">Categoría SIRADIG</th>
+                                <th scope="col" class="text-end">Importe Total</th>
+                                <th scope="col" class="text-center pe-3">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in receipts %}
+                            <tr>
+                                <td class="ps-3 text-nowrap">{{ r.fecha_emision|default:"-" }}</td>
+                                <td class="font-monospace">{{ r.cuit_emisor|default:"-" }}</td>
+                                <td class="fw-medium">{{ r.razon_social|default:"Sin razón social" }}</td>
+                                <td class="font-monospace">{{ r.numero_comprobante|default:"-" }}</td>
+                                <td>
+                                    <span class="small">{{ r.categoria_gasto_siradig|default:"Indumentaria y Equipamiento" }}</span>
+                                </td>
+                                <td class="text-end fw-semibold text-nowrap">
+                                    {% if r.importe_total %}
+                                        ${{ r.importe_total|floatformat:2 }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="text-center pe-3">
+                                    {% if r.estado == 'pendiente_revision' %}
+                                        <span class="badge bg-secondary">Pendiente de Revisión</span>
+                                    {% elif r.estado == 'pendiente_carga' %}
+                                        <span class="badge bg-warning text-dark">Pendiente de Carga</span>
+                                    {% elif r.estado == 'cargado_en_siradig' %}
+                                        <span class="badge bg-success">Cargado en SIRADIG</span>
+                                    {% elif r.estado == 'error_carga' %}
+                                        <span class="badge bg-danger">Error de Carga</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark border">{{ r.get_estado_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-5 px-3">
+                    <div class="mb-3">
+                        <i class="bi bi-file-earmark-text text-muted" style="font-size: 3.5rem;"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Aún no tenés comprobantes registrados</h3>
+                    <p class="text-muted mx-auto mb-4" style="max-width: 500px;">
+                        Comenzá enviando fotos o archivos PDF de tus facturas a través de nuestro bot oficial de Telegram para procesarlos automáticamente con IA.
+                    </p>
+                    <a href="{{ telegram_link }}" class="btn btn-primary shadow-sm" target="_blank" rel="noopener noreferrer">
+                        <i class="bi bi-telegram me-2"></i>Enviar mi primer comprobante por Telegram
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function copiarToken() {
+    var input = document.getElementById('extension-token-input');
+    var btn = document.getElementById('btn-copy-token');
+    var icon = document.getElementById('btn-copy-icon');
+    var text = document.getElementById('btn-copy-text');
+
+    if (!input) return;
+
+    var tokenValue = input.value;
+
+    function darFeedback() {
+        var originalBtnClass = btn.className;
+        var originalIconClass = icon.className;
+        var originalText = text.innerText;
+
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-success');
+        icon.className = 'bi bi-check2 me-1';
+        text.innerText = '¡Copiado!';
+
+        setTimeout(function() {
+            btn.className = originalBtnClass;
+            icon.className = originalIconClass;
+            text.innerText = originalText;
+        }, 2000);
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(tokenValue).then(darFeedback).catch(function() {
+            input.select();
+            document.execCommand('copy');
+            darFeedback();
+        });
+    } else {
+        input.select();
+        try {
+            document.execCommand('copy');
+            darFeedback();
+        } catch (err) {
+            console.error('Error al copiar el token:', err);
+        }
+    }
+}
+</script>
+{% endblock %}

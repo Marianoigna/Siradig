@@ -61,11 +61,16 @@
     {% block footer %}
     <footer class="bg-white border-top py-4 text-center text-muted small mt-auto">
         <div class="container">
-            <p class="mb-1">&copy; {% now "Y" %} SIRADIG Auto. Automatización inteligente de deducciones F572 AFIP/ARCA.</p>
-            <p class="mb-0 text-secondary">
+            <p class="mb-2">&copy; {% now "Y" %} SIRADIG Auto. Automatización inteligente de deducciones F572 AFIP/ARCA.</p>
+            <p class="mb-2 text-secondary">
                 <i class="bi bi-shield-check text-success me-1"></i>
                 Nunca solicitamos ni almacenamos tus credenciales de AFIP/ARCA.
             </p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'terms' %}" class="text-decoration-none text-muted">Términos de Servicio</a>
+                <span class="text-muted">&bull;</span>
+                <a href="{% url 'privacy' %}" class="text-decoration-none text-muted">Política de Privacidad</a>
+            </div>
         </div>
     </footer>
     {% endblock %}

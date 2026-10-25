@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Política de Privacidad - SIRADIG Auto{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    <h1 class="h2 fw-bold text-primary mb-4">Política de Privacidad</h1>
+                    <p class="text-muted small mb-4">Última actualización: 25 de octubre de 2026</p>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">1. Responsable del Tratamiento de Datos</h2>
+                        <p class="text-secondary">
+                            El responsable de la recopilación y gestión de datos en SIRADIG Auto es el desarrollador del servicio. Ante cualquier inquietud, solicitud o ejercicio de derechos sobre sus datos, puede comunicarse al correo electrónico oficial:
+                        </p>
+                        <p>
+                            <a href="mailto:marianoignaszewski@gmail.com" class="fw-semibold text-primary">
+                                <i class="bi bi-envelope-fill me-1"></i>marianoignaszewski@gmail.com
+                            </a>
+                        </p>
+                    </section>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">2. Finalidad del Servicio y Datos Recopilados</h2>
+                        <p class="text-secondary">
+                            La finalidad de SIRADIG Auto es facilitar la carga de deducciones fiscales en el formulario 572 de AFIP/ARCA mediante extracción asistida con inteligencia artificial. Recopilamos exclusivamente los siguientes datos imprescindibles para la operación técnica:
+                        </p>
+                        <ul class="text-secondary">
+                            <li><strong>Datos de cuenta:</strong> Correo electrónico y nombre de usuario o identificador provisto mediante Google OAuth.</li>
+                            <li><strong>Identificador de mensajería:</strong> Telegram Chat ID e ID de vinculación cuando decide utilizar el bot de Telegram.</li>
+                            <li><strong>Comprobantes y datos fiscales extraídos:</strong> Imágenes o documentos PDF de facturas cargadas, CUIT de emisor, fecha de emisión, tipo y número de comprobante, importe total e importes gravados/no gravados.</li>
+                        </ul>
+                    </section>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">3. Principio Fundamental: No Almacenamiento de Credenciales AFIP / ARCA</h2>
+                        <div class="alert alert-success border-0 d-flex align-items-center">
+                            <i class="bi bi-shield-check-fill fs-3 text-success me-3"></i>
+                            <div>
+                                <strong>Privacidad de credenciales garantizada:</strong> SIRADIG Auto <strong>no almacena, no solicita ni transmite jamás contraseñas, Clave Fiscal ni credenciales de acceso de AFIP/ARCA</strong>. La extensión de navegador opera únicamente dentro de la sesión web activa que el usuario inicia por su cuenta en el sitio oficial.
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">4. Procesamiento OCR con Inteligencia Artificial (Google Gemini API)</h2>
+                        <p class="text-secondary">
+                            Para interpretar los comprobantes enviados, utilizamos servicios de visión artificial a través de la API empresarial de Google Gemini. Los datos enviados se procesan exclusivamente para retornar la estructura JSON de la factura. Conforme a las políticas del servicio API, los datos y documentos transmitidos <strong>no se emplean para entrenar modelos públicos de inteligencia artificial</strong>.
+                        </p>
+                    </section>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">5. Conservación, Aislamiento y Supresión de Datos</h2>
+                        <p class="text-secondary">
+                            Los datos son aislados rigurosamente por usuario. No compartimos ni vendemos datos personales ni fiscales a terceros para fines publicitarios ni comerciales.
+                        </p>
+                        <p class="text-secondary">
+                            Los usuarios tienen pleno derecho a solicitar el acceso, rectificación, copia o eliminación definitiva de sus comprobantes y perfil de usuario (derechos ARCO) escribiendo a <a href="mailto:marianoignaszewski@gmail.com">marianoignaszewski@gmail.com</a>.
+                        </p>
+                    </section>
+
+                    <section class="mb-4">
+                        <h2 class="h5 fw-semibold text-dark">6. Contacto</h2>
+                        <p class="text-secondary">
+                            Para ejercer cualquiera de sus derechos o formular consultas relativas a esta política:
+                        </p>
+                        <p>
+                            <a href="mailto:marianoignaszewski@gmail.com" class="fw-semibold text-primary">
+                                <i class="bi bi-envelope-fill me-1"></i>marianoignaszewski@gmail.com
+                            </a>
+                        </p>
+                    </section>
+
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'landing' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i>Volver al Inicio
+                        </a>
+                        <a href="{% url 'terms' %}" class="btn btn-outline-primary btn-sm">
+                            Ver Términos y Condiciones<i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

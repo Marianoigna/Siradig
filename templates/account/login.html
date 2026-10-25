@@ -58,10 +58,15 @@
                             <label class="form-check-label small text-muted" for="id_remember">Recordarme en este equipo</label>
                         </div>
 
-                        <div class="d-grid mb-3">
+                        <div class="d-grid mb-2">
                             <button type="submit" class="btn btn-primary py-2 fw-semibold">
                                 <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
                             </button>
+                        </div>
+                        <div class="text-center mb-3">
+                            <span class="text-muted small">
+                                Al iniciar sesión aceptas los <a href="{% url 'terminos' %}" target="_blank" rel="noopener noreferrer">Términos de Servicio</a> y la <a href="{% url 'privacidad' %}" target="_blank" rel="noopener noreferrer">Política de Privacidad</a>.
+                            </span>
                         </div>
                     </form>
 
@@ -70,7 +75,7 @@
                         <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">o</span>
                     </div>
 
-                    <div class="d-grid mb-3">
+                    <div class="d-grid mb-2">
                         <a href="{% provider_login_url 'google' process='login' %}" class="btn btn-outline-dark py-2 fw-semibold d-flex align-items-center justify-content-center">
                             <svg class="me-2" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -80,6 +85,11 @@
                             </svg>
                             Continuar con Google
                         </a>
+                    </div>
+                    <div class="text-center mb-3">
+                        <span class="text-muted small">
+                            Al continuar con Google aceptas los <a href="{% url 'terminos' %}" target="_blank" rel="noopener noreferrer">Términos de Servicio</a> y la <a href="{% url 'privacidad' %}" target="_blank" rel="noopener noreferrer">Política de Privacidad</a>.
+                        </span>
                     </div>
 
                     <div class="text-center mt-4">

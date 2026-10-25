@@ -410,6 +410,15 @@ class WebhookIntegrationTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.get("/dashboard/")
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "¡Hola, testuser!")
+        self.assertContains(response, "Extensión de Navegador")
+        self.assertContains(response, "btn-copy-token")
+        self.assertContains(response, "Total Comprobantes")
+        self.assertContains(response, "Total Deducible")
+        self.assertContains(
+            response, "https://auth.afip.gob.ar/contribuyente_/login.xhtml"
+        )
+        self.assertContains(response, "Cerrar Sesión")
 
     @mock.patch("receipts.views.telegram_service")
     @mock.patch("receipts.views.ocr_service.extraer_datos_factura")
@@ -647,6 +656,7 @@ class LocalAuthenticationTests(TestCase):
                 "email": self.valid_email,
                 "password1": self.valid_password,
                 "password2": self.valid_password,
+                "terms_accepted": "true",
             },
         )
         self.assertEqual(response.status_code, 302)
@@ -986,3 +996,302 @@ class GoogleOAuthIntegrationTests(TestCase):
         orig_profile.refresh_from_db()
         self.assertEqual(orig_profile.telegram_link_token, orig_telegram_token)
         self.assertEqual(Token.objects.get(user=existing_user).key, orig_auth_token)
+
+
+class LegalViewsTests(TestCase):
+    """Pruebas de rutas y plantillas legales (Tarea T1 - specs/006-tasks.md).
+
+    Cubre: RF-LEG-001, RF-LEG-002, RF-LEG-003, RF-LEG-007, CA-LEG-001, CA-LEG-002, CA-LEG-005.
+    """
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_terms_page_renders_status_200_and_legal_content(self):
+        """RF-LEG-001, RF-LEG-002, CA-LEG-001:
+        /terminos/ responde HTTP 200 sin autenticación, menciona deslinde de AFIP,
+        procesamiento con IA y canal oficial marianoignaszewski@gmail.com.
+        """
+        response = self.client.get("/terminos/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "marianoignaszewski@gmail.com")
+        self.assertContains(response, "AFIP")
+        self.assertContains(response, "ARCA")
+        self.assertContains(response, "claves fiscales")
+
+    def test_privacy_page_renders_status_200_and_legal_content(self):
+        """RF-LEG-001, RF-LEG-003, CA-LEG-002:
+        /privacidad/ responde HTTP 200 sin autenticación, menciona finalidad,
+        no almacenamiento de claves AFIP, Google Gemini API y marianoignaszewski@gmail.com.
+        """
+        response = self.client.get("/privacidad/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "marianoignaszewski@gmail.com")
+        self.assertContains(response, "AFIP")
+        self.assertContains(response, "Gemini")
+        self.assertContains(response, "no almacena")
+
+    def test_footer_contains_navigation_links_to_legal_pages(self):
+        """RF-LEG-007, CA-LEG-005:
+        La plantilla base incluye en el footer enlaces directos y navegables a /terminos/ y /privacidad/.
+        """
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'href="/terminos/"')
+        self.assertContains(response, 'href="/privacidad/"')
+
+
+class LegalAuthFormAndNoticeTests(TestCase):
+    """Pruebas del formulario de registro con checkbox legal y avisos en autenticación (Tarea T2 - specs/006-tasks.md).
+
+    Cubre: RF-LEG-004, RF-LEG-005, RF-LEG-006, CA-LEG-003, CA-LEG-004.
+    """
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        self.User = get_user_model()
+        self.client = Client()
+        self.valid_email = "legal_user@ejemplo.com"
+        self.valid_password = "PasswordSegura123!"
+
+    def test_signup_post_without_terms_accepted_fails_and_does_not_create_user(self):
+        """RF-LEG-004, CA-LEG-003:
+        Intento de registro sin marcar terms_accepted es rechazado con error en formulario (HTTP 200)
+        y no crea usuario en base de datos.
+        """
+        response = self.client.post(
+            "/accounts/signup/",
+            {
+                "email": self.valid_email,
+                "password1": self.valid_password,
+                "password2": self.valid_password,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/signup.html")
+        form = response.context["form"]
+        self.assertIn("terms_accepted", form.errors)
+        self.assertIn(
+            "Debes aceptar los Términos de Servicio y la Política de Privacidad para crear una cuenta.",
+            form.errors["terms_accepted"],
+        )
+        self.assertFalse(self.User.objects.filter(email=self.valid_email).exists())
+
+    def test_signup_post_with_terms_accepted_succeeds_and_creates_user(self):
+        """RF-LEG-004, CA-LEG-003:
+        Intento de registro marcando terms_accepted se procesa exitosamente, crea usuario y redirige a /dashboard/.
+        """
+        from rest_framework.authtoken.models import Token
+
+        from receipts.models import UserProfile
+
+        response = self.client.post(
+            "/accounts/signup/",
+            {
+                "email": self.valid_email,
+                "password1": self.valid_password,
+                "password2": self.valid_password,
+                "terms_accepted": "true",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/dashboard/", target_status_code=200)
+
+        user = self.User.objects.filter(email=self.valid_email).first()
+        self.assertIsNotNone(user)
+        self.assertTrue(UserProfile.objects.filter(user=user).exists())
+        self.assertTrue(Token.objects.filter(user=user).exists())
+
+    def test_signup_template_renders_terms_checkbox_and_oauth_notice(self):
+        """RF-LEG-004, RF-LEG-006, CA-LEG-004:
+        La página de registro muestra el checkbox con enlaces a términos y privacidad,
+        y la cláusula legal bajo el botón de Google OAuth.
+        """
+        response = self.client.get("/accounts/signup/")
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode("utf-8")
+        self.assertIn('name="terms_accepted"', content)
+        self.assertIn('href="/terminos/"', content)
+        self.assertIn('href="/privacidad/"', content)
+        self.assertIn('target="_blank"', content)
+        self.assertIn("Al continuar con Google aceptas los", content)
+
+    def test_login_template_renders_legal_notice_and_oauth_notice(self):
+        """RF-LEG-005, RF-LEG-006, CA-LEG-004:
+        La página de login muestra aviso legal al pie del formulario y cláusula legal bajo el botón de Google.
+        """
+        response = self.client.get("/accounts/login/")
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode("utf-8")
+        self.assertIn("Al iniciar sesión aceptas los", content)
+        self.assertIn("Al continuar con Google aceptas los", content)
+        self.assertIn('href="/terminos/"', content)
+        self.assertIn('href="/privacidad/"', content)
+        self.assertIn('target="_blank"', content)
+
+
+class DashboardViewAndTemplateTests(TestCase):
+    """Pruebas para T3 y T4: Contexto, KPIs, aislamiento, badges, token y template del dashboard."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="dash_user",
+            email="dash_user@example.com",
+            password="securepassword123",
+            first_name="Mariano",
+        )
+        self.other_user = User.objects.create_user(
+            username="other_user",
+            email="other_user@example.com",
+            password="securepassword123",
+        )
+        self.token, _ = Token.objects.get_or_create(user=self.user)
+        self.profile, _ = UserProfile.objects.get_or_create(user=self.user)
+
+    def test_dashboard_unauthenticated_redirects_to_login(self):
+        """Acceso anónimo debe redirigir a login (HTTP 302)."""
+        response = self.client.get("/dashboard/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response.url)
+
+    def test_dashboard_context_and_kpis_calculation(self):
+        """RF-DSH-002, CA-DSH-001, RN-004:
+        Cálculo de KPIs, totales y aislamiento estricto de comprobantes.
+        """
+        # Comprobantes del usuario
+        Receipt.objects.create(
+            user=self.user,
+            estado="pendiente_revision",
+            importe_total=150.50,
+            categoria_gasto_siradig="Gastos de Adquisición de Indumentaria y Equipamiento",
+        )
+        Receipt.objects.create(
+            user=self.user,
+            estado="pendiente_carga",
+            importe_total=300.00,
+            categoria_gasto_siradig="Gastos de Adquisición de Indumentaria y Equipamiento",
+        )
+        Receipt.objects.create(
+            user=self.user,
+            estado="cargado_en_siradig",
+            importe_total=500.25,
+            categoria_gasto_siradig="Gastos de Adquisición de Indumentaria y Equipamiento",
+        )
+        Receipt.objects.create(
+            user=self.user,
+            estado="error_carga",
+            importe_total=49.25,
+            categoria_gasto_siradig="Gastos de Adquisición de Indumentaria y Equipamiento",
+        )
+
+        # Comprobante de otro usuario que NO debe influir en los KPIs ni en la tabla
+        Receipt.objects.create(
+            user=self.other_user,
+            estado="cargado_en_siradig",
+            importe_total=99999.00,
+            categoria_gasto_siradig="Gastos de Adquisición de Indumentaria y Equipamiento",
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get("/dashboard/")
+        self.assertEqual(response.status_code, 200)
+
+        # Verificar contexto
+        ctx = response.context
+        self.assertEqual(ctx["total_comprobantes"], 4)
+        self.assertAlmostEqual(float(ctx["total_deducible_pesos"]), 1000.00)
+        self.assertEqual(ctx["conteo_pendiente_revision"], 1)
+        self.assertEqual(ctx["conteo_pendiente_carga"], 1)
+        self.assertEqual(ctx["conteo_cargado"], 1)
+        self.assertEqual(ctx["conteo_error"], 1)
+        self.assertEqual(ctx["token"], self.token.key)
+        self.assertEqual(len(ctx["receipts"]), 4)
+
+        # Verificar renderizado en HTML
+        content = response.content.decode("utf-8")
+        self.assertIn("¡Hola, Mariano!", content)
+        self.assertIn("dash_user@example.com", content)
+        self.assertIn(self.token.key, content)
+        self.assertIn("1000", content)
+        self.assertNotIn("99999", content)
+
+    def test_dashboard_badges_rendered_semantically(self):
+        """RF-DSH-006, CA-DSH-004: Badges de color según estado del comprobante."""
+        Receipt.objects.create(
+            user=self.user,
+            estado="pendiente_revision",
+            importe_total=100.0,
+            cuit_emisor="20111111112",
+            razon_social="Proveedor Uno",
+        )
+        Receipt.objects.create(
+            user=self.user,
+            estado="pendiente_carga",
+            importe_total=200.0,
+            cuit_emisor="20222222223",
+            razon_social="Proveedor Dos",
+        )
+        Receipt.objects.create(
+            user=self.user,
+            estado="cargado_en_siradig",
+            importe_total=300.0,
+            cuit_emisor="20333333334",
+            razon_social="Proveedor Tres",
+        )
+        Receipt.objects.create(
+            user=self.user,
+            estado="error_carga",
+            importe_total=400.0,
+            cuit_emisor="20444444445",
+            razon_social="Proveedor Cuatro",
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get("/dashboard/")
+        self.assertEqual(response.status_code, 200)
+
+        content = response.content.decode("utf-8")
+        self.assertIn(
+            '<span class="badge bg-secondary">Pendiente de Revisión</span>', content
+        )
+        self.assertIn(
+            '<span class="badge bg-warning text-dark">Pendiente de Carga</span>',
+            content,
+        )
+        self.assertIn(
+            '<span class="badge bg-success">Cargado en SIRADIG</span>', content
+        )
+        self.assertIn('<span class="badge bg-danger">Error de Carga</span>', content)
+
+    def test_dashboard_empty_state_without_receipts(self):
+        """RF-DSH-007, CA-DSH-005: Estado vacío cuando el usuario no tiene comprobantes."""
+        self.client.force_login(self.user)
+        response = self.client.get("/dashboard/")
+        self.assertEqual(response.status_code, 200)
+
+        content = response.content.decode("utf-8")
+        self.assertIn("Aún no tenés comprobantes registrados", content)
+        self.assertIn("Enviar mi primer comprobante por Telegram", content)
+        self.assertNotIn("<table", content)
+
+    def test_dashboard_token_copy_button_and_script(self):
+        """RF-DSH-005, CA-DSH-002: Campo de token y botón interactivo con script JS."""
+        self.client.force_login(self.user)
+        response = self.client.get("/dashboard/")
+        self.assertEqual(response.status_code, 200)
+
+        content = response.content.decode("utf-8")
+        self.assertIn('id="extension-token-input"', content)
+        self.assertIn('id="btn-copy-token"', content)
+        self.assertIn("copiarToken", content)
+        self.assertIn("navigator.clipboard.writeText", content)
+        self.assertIn("document.execCommand('copy')", content)
+
+    def test_dashboard_logout_redirects_to_landing(self):
+        """RF-DSH-008, CA-DSH-006: Logout redirige a la raíz /."""
+        self.client.force_login(self.user)
+        response = self.client.post("/accounts/logout/")
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/", target_status_code=200)
