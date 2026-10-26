@@ -14,7 +14,7 @@ line-length = 88
 target-version = ["py311"]
 
 [tool.coverage.run]
-source = ["core", "receipts"]
+source = ["core", "receipts", "subscriptions"]
 omit = ["venv/*", "*/migrations/*", "*/__pycache__/*", "*/tests.py"]
 
 [tool.coverage.report]
@@ -27,5 +27,5 @@ exclude_lines = [
 [tool.pytest.ini_options]
 django_find_project = true
 python_files = ["tests.py", "test_*.py"]
-testpaths = ["receipts"]
+testpaths = ["receipts", "subscriptions"]
 addopts = "--ds core.settings -v --cov --cov-report=term-missing"

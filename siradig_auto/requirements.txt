@@ -13,3 +13,4 @@ paho-mqtt
 gunicorn
 whitenoise
 requests
+mercadopago==2.2.0

@@ -34,6 +34,7 @@ urlpatterns = [
         name="privacy",
     ),
     path("accounts/", include("allauth.urls")),
+    path("suscripciones/", include("subscriptions.urls")),
     path("", include("receipts.urls")),
 ]
 

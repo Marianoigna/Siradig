@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+from decimal import Decimal
 from pathlib import Path
 
 import environ
@@ -52,6 +53,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "receipts",
+    "subscriptions.apps.SubscriptionsConfig",
 ]
 
 MIDDLEWARE = [
@@ -208,3 +210,12 @@ DEFAULT_FROM_EMAIL = env(
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
 TELEGRAM_BOT_USERNAME = env("TELEGRAM_BOT_USERNAME", default="")
+
+# MercadoPago y Suscripciones
+MERCADOPAGO_ACCESS_TOKEN = env("MERCADOPAGO_ACCESS_TOKEN", default="")
+MERCADOPAGO_PUBLIC_KEY = env("MERCADOPAGO_PUBLIC_KEY", default="")
+MERCADOPAGO_WEBHOOK_SECRET = env("MERCADOPAGO_WEBHOOK_SECRET", default="")
+MERCADOPAGO_AUTO_RETURN_URL = env("MERCADOPAGO_AUTO_RETURN_URL", default="")
+MERCADOPAGO_BACK_URL = env("MERCADOPAGO_BACK_URL", default="")
+PRECIO_MENSUAL = Decimal(str(env("PRECIO_MENSUAL", default="30000.00")))
+TRIAL_DURATION_DAYS = env.int("TRIAL_DURATION_DAYS", default=15)
