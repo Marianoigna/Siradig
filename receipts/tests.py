@@ -997,6 +997,66 @@ class GoogleOAuthIntegrationTests(TestCase):
         self.assertEqual(orig_profile.telegram_link_token, orig_telegram_token)
         self.assertEqual(Token.objects.get(user=existing_user).key, orig_auth_token)
 
+    def test_social_user_registration_adapter_populates_username_and_creates_profile(
+        self,
+    ):
+        """Verifica que el registro de un nuevo usuario social mediante el adapter de allauth:
+        - Asigna un username válido y no nulo al usuario (evitando IntegrityError).
+        - Guarda el usuario satisfactoriamente en base de datos.
+        - Genera automáticamente su UserProfile con trial_start_date y su Token DRF vía post_save.
+        """
+        from allauth.socialaccount.adapter import get_adapter
+        from allauth.socialaccount.models import SocialAccount, SocialLogin
+        from django.contrib.sessions.middleware import SessionMiddleware
+        from django.test import RequestFactory
+        from rest_framework.authtoken.models import Token
+
+        from receipts.models import UserProfile
+
+        adapter = get_adapter()
+        request = RequestFactory().get("/accounts/google/login/callback/")
+        middleware = SessionMiddleware(lambda req: None)
+        middleware.process_request(request)
+        request.session.save()
+
+        social_email = "new_google_user@gmail.com"
+        new_user = User(email=social_email)
+
+        account = SocialAccount(
+            provider="google",
+            uid="google_uid_999888777",
+            extra_data={
+                "email": social_email,
+                "name": "New Google User",
+                "given_name": "New",
+                "family_name": "User",
+            },
+        )
+        sociallogin = SocialLogin(user=new_user, account=account)
+
+        # Poblar usuario desde los datos sociales (pre-rellena atributos básicos)
+        adapter.populate_user(request, sociallogin, data={"email": social_email})
+
+        # Guardar usuario mediante el adapter (sin formulario, flujo de auto-signup).
+        # Esto invoca account_adapter.populate_username() que auto-genera el username único
+        # antes de persistir new_user en la base de datos.
+        saved_user = adapter.save_user(request, sociallogin, form=None)
+
+        self.assertIsNotNone(saved_user.pk)
+        self.assertTrue(saved_user.username)
+        self.assertIsNotNone(saved_user.username)
+        self.assertEqual(saved_user.email, social_email)
+
+        # Verificar generación automática de UserProfile y Token de DRF vía post_save
+        profile = UserProfile.objects.filter(user=saved_user).first()
+        self.assertIsNotNone(profile)
+        self.assertIsNotNone(profile.trial_start_date)
+        self.assertTrue(profile.telegram_link_token)
+
+        token = Token.objects.filter(user=saved_user).first()
+        self.assertIsNotNone(token)
+        self.assertTrue(token.key)
+
 
 class LegalViewsTests(TestCase):
     """Pruebas de rutas y plantillas legales (Tarea T1 - specs/006-tasks.md).
