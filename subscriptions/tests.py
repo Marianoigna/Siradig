@@ -749,12 +749,39 @@ class SubscriptionViewsTests(TestCase):
         self.assertTemplateUsed(resp, "subscriptions/planes.html")
         self.assertContains(resp, "Plan Mensual")
 
-    def test_iniciar_checkout_requiere_post(self):
+    def test_iniciar_checkout_get_redirige_a_planes(self):
         self.client.force_login(self.user)
         resp = self.client.get(
             reverse("subscriptions:iniciar_checkout", kwargs={"tipo_plan": "mensual"})
         )
-        self.assertEqual(resp.status_code, 405)
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse("subscriptions:planes"))
+
+        # Siguiendo la redirección se observa el mensaje informativo
+        resp_followed = self.client.get(
+            reverse("subscriptions:iniciar_checkout", kwargs={"tipo_plan": "mensual"}),
+            follow=True,
+        )
+        self.assertEqual(resp_followed.status_code, 200)
+        self.assertContains(
+            resp_followed, "Seleccioná tu plan para continuar con la suscripción."
+        )
+
+    def test_iniciar_checkout_sin_token_redirige_a_planes_sin_500(self):
+        self.client.force_login(self.user)
+        with override_settings(MERCADOPAGO_ACCESS_TOKEN=""):
+            resp = self.client.post(
+                reverse(
+                    "subscriptions:iniciar_checkout", kwargs={"tipo_plan": "mensual"}
+                ),
+                follow=True,
+            )
+            self.assertEqual(resp.status_code, 200)
+            self.assertTemplateUsed(resp, "subscriptions/planes.html")
+            self.assertContains(
+                resp,
+                "La pasarela de pagos no está configurada correctamente en el servidor.",
+            )
 
     @patch("subscriptions.views.crear_suscripcion_preapproval")
     def test_iniciar_checkout_exitoso_redirige_init_point(self, mock_crear):

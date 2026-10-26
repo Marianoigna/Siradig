@@ -44,28 +44,53 @@ def planes_view(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-@require_POST
 def iniciar_checkout_view(request: HttpRequest, tipo_plan: str) -> HttpResponse:
     """
     Inicia la suscripción de débito automático recurrente en MercadoPago para el plan solicitado.
+    Si es GET, redirige amigablemente a la lista de planes.
+    Si es POST, ejecuta la creación de la suscripción de forma defensiva.
     Si MercadoPago devuelve init_point, redirige con HTTP 302 al checkout.
-    Si falla, notifica el error vía Django messages y redirige a la grilla de planes.
+    Si falla, notifica el error vía Django messages y redirige a la grilla de planes sin arrojar 500.
     """
+    if request.method == "GET":
+        messages.info(request, "Seleccioná tu plan para continuar con la suscripción.")
+        return redirect("subscriptions:planes")
+
+    if request.method != "POST":
+        return redirect("subscriptions:planes")
+
     plan = get_object_or_404(Plan, tipo=tipo_plan, activo=True)
 
-    resultado = crear_suscripcion_preapproval(
-        usuario=request.user,
-        plan=plan,
-        request=request,
-    )
+    try:
+        resultado = crear_suscripcion_preapproval(
+            usuario=request.user,
+            plan=plan,
+            request=request,
+        )
+    except Exception as e:
+        logger.exception(
+            "Excepción no controlada al iniciar checkout para usuario %s: %s",
+            request.user.id,
+            e,
+        )
+        resultado = {
+            "error": "No se pudo iniciar el proceso de pago. Por favor intenta nuevamente.",
+            "status": "error",
+        }
 
     init_point = resultado.get("init_point")
     if init_point:
         return HttpResponseRedirect(init_point)
 
-    error_msg = resultado.get(
-        "error",
-        "Ocurrió un inconveniente al conectar con MercadoPago. Por favor intentá nuevamente más tarde.",
+    error_msg = (
+        resultado.get("error")
+        or "No se pudo iniciar el proceso de pago. Por favor intenta nuevamente."
+    )
+    logger.error(
+        "Fallo en checkout de suscripción para usuario %s (plan %s): %s",
+        request.user.id,
+        tipo_plan,
+        error_msg,
     )
     messages.error(request, error_msg)
     return redirect("subscriptions:planes")

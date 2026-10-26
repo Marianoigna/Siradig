@@ -35,7 +35,28 @@ def crear_suscripcion_preapproval(
     Crea una suscripción de débito recurrente (Preapproval) en MercadoPago y
     asocia el ID devuelto a la Suscripcion del usuario local.
     """
-    sdk = obtener_sdk_mercadopago()
+    try:
+        sdk = obtener_sdk_mercadopago()
+    except ImproperlyConfigured as e:
+        logger.error(
+            "Configuración inválida al inicializar MercadoPago para usuario %s: %s",
+            getattr(usuario, "id", None),
+            e,
+        )
+        return {
+            "error": "La pasarela de pagos no está configurada correctamente en el servidor.",
+            "status": "error",
+        }
+    except Exception as e:
+        logger.exception(
+            "Error inesperado al inicializar cliente MercadoPago para usuario %s: %s",
+            getattr(usuario, "id", None),
+            e,
+        )
+        return {
+            "error": f"Error inesperado al inicializar la pasarela de pagos: {str(e)}",
+            "status": "error",
+        }
 
     # Resolver back_url
     back_url = getattr(settings, "MERCADOPAGO_AUTO_RETURN_URL", "")
@@ -86,38 +107,49 @@ def crear_suscripcion_preapproval(
             "status": "error",
         }
 
-    status_code = mp_response.get("status")
-    response_body = mp_response.get("response", {})
+    try:
+        status_code = mp_response.get("status")
+        response_body = mp_response.get("response", {})
 
-    if status_code in (200, 201):
-        gateway_subscription_id = response_body.get("id", "")
-        init_point = response_body.get("init_point", "")
+        if status_code in (200, 201):
+            gateway_subscription_id = response_body.get("id", "")
+            init_point = response_body.get("init_point", "")
 
-        suscripcion, _ = Suscripcion.objects.get_or_create(usuario=usuario)
-        suscripcion.plan = plan
-        if gateway_subscription_id:
-            suscripcion.gateway_subscription_id = gateway_subscription_id
-        suscripcion.save(update_fields=["plan", "gateway_subscription_id"])
+            suscripcion, _ = Suscripcion.objects.get_or_create(usuario=usuario)
+            suscripcion.plan = plan
+            if gateway_subscription_id:
+                suscripcion.gateway_subscription_id = gateway_subscription_id
+            suscripcion.save(update_fields=["plan", "gateway_subscription_id"])
 
+            return {
+                "id": gateway_subscription_id,
+                "init_point": init_point,
+                "status": response_body.get("status", "pending"),
+            }
+
+        error_detail = (
+            response_body.get("message")
+            or response_body.get("error")
+            or str(response_body)
+        )
+        logger.error(
+            "MercadoPago Preapproval error (HTTP %s): %s",
+            status_code,
+            error_detail,
+        )
         return {
-            "id": gateway_subscription_id,
-            "init_point": init_point,
-            "status": response_body.get("status", "pending"),
+            "error": f"MercadoPago retornó un error ({status_code}): {error_detail}",
+            "status": "error",
+            "detail": response_body,
         }
-
-    error_detail = (
-        response_body.get("message") or response_body.get("error") or str(response_body)
-    )
-    logger.error(
-        "MercadoPago Preapproval error (HTTP %s): %s",
-        status_code,
-        error_detail,
-    )
-    return {
-        "error": f"MercadoPago retornó un error ({status_code}): {error_detail}",
-        "status": "error",
-        "detail": response_body,
-    }
+    except Exception as e:
+        logger.exception(
+            "Error procesando la respuesta de suscripción en MercadoPago: %s", e
+        )
+        return {
+            "error": f"Error procesando la respuesta del servicio de pagos: {str(e)}",
+            "status": "error",
+        }
 
 
 def cancelar_suscripcion_preapproval(suscripcion: Suscripcion) -> bool:
