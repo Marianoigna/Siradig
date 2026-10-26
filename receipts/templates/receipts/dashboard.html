@@ -22,21 +22,24 @@
                     </span>
                 {% endif %}
                 {% if estado_cuenta.es_trial and estado_cuenta.tiene_acceso %}
-                    <span class="badge bg-primary-subtle text-primary ms-2 border border-primary-subtle">
+                    <a href="{% url 'subscriptions:planes' %}" class="badge bg-primary-subtle text-primary ms-2 border border-primary-subtle text-decoration-none">
                         <i class="bi bi-clock-history me-1"></i>Prueba gratuita: {{ estado_cuenta.dias_restantes_trial }} días restantes
-                    </span>
+                    </a>
                 {% elif estado_cuenta.motivo == 'suscripcion_activa' %}
-                    <span class="badge bg-success-subtle text-success ms-2 border border-success-subtle">
+                    <a href="{% url 'subscriptions:planes' %}" class="badge bg-success-subtle text-success ms-2 border border-success-subtle text-decoration-none">
                         <i class="bi bi-star-fill me-1"></i>Suscripción Premium Activa
-                    </span>
+                    </a>
                 {% elif not estado_cuenta.tiene_acceso %}
-                    <span class="badge bg-danger-subtle text-danger ms-2 border border-danger-subtle">
+                    <a href="{% url 'subscriptions:planes' %}" class="badge bg-danger-subtle text-danger ms-2 border border-danger-subtle text-decoration-none">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i>Acceso vencido
-                    </span>
+                    </a>
                 {% endif %}
             </p>
         </div>
         <div class="col-12 col-md-5 d-flex gap-2 justify-content-md-end flex-wrap">
+            <a href="{% url 'subscriptions:planes' %}" class="btn btn-outline-primary d-inline-flex align-items-center shadow-sm">
+                <i class="bi bi-gem me-1 text-primary"></i>Ver Planes
+            </a>
             <a href="{{ telegram_link }}" class="btn btn-primary d-inline-flex align-items-center shadow-sm" target="_blank" rel="noopener noreferrer">
                 <i class="bi bi-telegram me-2 fs-5"></i>
                 {% if profile.telegram_chat_id %}Abrir Telegram{% else %}Vincular Telegram{% endif %}

@@ -29,6 +29,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link text-white fw-semibold" href="{% url 'subscriptions:planes' %}">
+                                <i class="bi bi-gem me-1 text-warning"></i>Planes / Suscripción
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <form action="{% url 'account_logout' %}" method="post" class="d-inline">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-outline-light btn-sm ms-lg-2">

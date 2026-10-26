@@ -1,13 +1,23 @@
 from django.urls import path
-from django.views.generic import TemplateView
+
+from subscriptions.views import (
+    cancelar_suscripcion_view,
+    iniciar_checkout_view,
+    mercadopago_webhook_view,
+    planes_view,
+    retorno_view,
+)
 
 app_name = "subscriptions"
 
 urlpatterns = [
-    # Placeholder para vista de planes (se implementará completamente en T6)
+    path("planes/", planes_view, name="planes"),
     path(
-        "planes/",
-        TemplateView.as_view(template_name="subscriptions/planes.html"),
-        name="planes",
+        "checkout/<str:tipo_plan>/",
+        iniciar_checkout_view,
+        name="iniciar_checkout",
     ),
+    path("retorno/", retorno_view, name="retorno"),
+    path("cancelar/", cancelar_suscripcion_view, name="cancelar"),
+    path("webhook/mercadopago/", mercadopago_webhook_view, name="webhook"),
 ]

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Planes y Suscripción - SIRADIG Auto{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold text-dark">Elegí el plan para potenciar tu SIRADIG</h1>
+        <p class="lead text-muted col-lg-8 mx-auto">
+            Automatizá la lectura y carga de tus comprobantes en AFIP/ARCA ahorrando horas de trabajo manual.
+        </p>
+
+        {% if estado_cuenta %}
+            <div class="mt-3">
+                {% if estado_cuenta.es_trial and estado_cuenta.tiene_acceso %}
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fs-6">
+                        <i class="bi bi-clock-history me-1"></i>Estás disfrutando de tu prueba gratuita: {{ estado_cuenta.dias_restantes_trial }} días restantes
+                    </span>
+                {% elif estado_cuenta.motivo == 'suscripcion_activa' %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6">
+                        <i class="bi bi-check-circle-fill me-1"></i>Tenés una suscripción activa
+                        {% if estado_cuenta.dias_restantes_suscripcion %}
+                            ({{ estado_cuenta.dias_restantes_suscripcion }} días de vigencia)
+                        {% endif %}
+                    </span>
+                {% elif not estado_cuenta.tiene_acceso %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fs-6">
+                        <i class="bi bi-exclamation-octagon-fill me-1"></i>Tu período de prueba o suscripción ha vencido. Suscribite para continuar.
+                    </span>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-8">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="row row-cols-1 row-cols-md-2 g-4 justify-content-center max-w-4xl mx-auto">
+        {% for plan in planes %}
+            <div class="col col-lg-5">
+                <div class="card h-100 shadow-sm border-2 {% if plan.tipo == 'anual' %}border-primary{% endif %} position-relative">
+                    {% if plan.tipo == 'anual' %}
+                        <div class="position-absolute top-0 end-0 m-3">
+                            <span class="badge bg-primary text-white text-uppercase px-2 py-1">Mejor Valor</span>
+                        </div>
+                    {% endif %}
+                    <div class="card-body p-4 d-flex flex-column">
+                        <h3 class="card-title fw-bold mb-2">{{ plan.nombre }}</h3>
+                        <p class="text-muted small mb-4">{{ plan.descripcion|default:"Acceso completo a todas las funciones de SIRADIG Auto." }}</p>
+                        <div class="my-3">
+                            <span class="display-6 fw-bold text-dark">${{ plan.precio }}</span>
+                            <span class="text-muted"> / {% if plan.tipo == 'anual' %}año{% else %}mes{% endif %}</span>
+                        </div>
+                        <ul class="list-unstyled my-4 flex-grow-1">
+                            <li class="mb-2 d-flex align-items-center">
+                                <i class="bi bi-check2 text-success me-2 fs-5"></i>
+                                Ingesta y OCR ilimitado vía Telegram
+                            </li>
+                            <li class="mb-2 d-flex align-items-center">
+                                <i class="bi bi-check2 text-success me-2 fs-5"></i>
+                                Carga automática con extensión web en F572
+                            </li>
+                            <li class="mb-2 d-flex align-items-center">
+                                <i class="bi bi-check2 text-success me-2 fs-5"></i>
+                                Detección inteligente de IVA e Indumentaria
+                            </li>
+                            <li class="mb-2 d-flex align-items-center">
+                                <i class="bi bi-shield-check text-primary me-2 fs-5"></i>
+                                100% Seguro: sin guardar Clave Fiscal
+                            </li>
+                        </ul>
+                        <div class="mt-auto pt-3">
+                            <form action="{% url 'subscriptions:iniciar_checkout' tipo_plan=plan.tipo %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="btn {% if plan.tipo == 'anual' %}btn-primary{% else %}btn-outline-primary{% endif %} w-100 py-2 fw-semibold shadow-sm">
+                                    <i class="bi bi-credit-card me-2"></i>Suscribirme con MercadoPago
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12 text-center text-muted py-5">
+                <p>No hay planes disponibles en este momento. Por favor intentá más tarde.</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if suscripcion and suscripcion.estado == 'activa' %}
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-6 text-center">
+                <div class="card border-0 bg-light p-3">
+                    <p class="small text-muted mb-2">
+                        ¿Querés cancelar tu suscripción recurrente? Vas a seguir teniendo acceso hasta el 
+                        <strong>{{ suscripcion.fecha_vencimiento|date:"d/m/Y" }}</strong>.
+                    </p>
+                    <form action="{% url 'subscriptions:cancelar' %}" method="post" onsubmit="return confirm('¿Estás seguro de que deseas cancelar la renovación automática de tu suscripción?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-x-circle me-1"></i>Cancelar renovación automática
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

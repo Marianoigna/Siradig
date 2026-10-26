@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Estado de Pago - SIRADIG Auto{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    {% if messages %}
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-7 col-lg-6">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6 text-center">
+            <div class="card shadow-sm border-0 p-4 p-md-5">
+                <div class="mb-4 text-primary">
+                    <i class="bi bi-clock-history display-1 text-primary"></i>
+                </div>
+                <h2 class="fw-bold mb-3">¡Gracias por suscribirte a SIRADIG Auto!</h2>
+                <p class="text-muted mb-4">
+                    Tu pago o suscripción está siendo procesado por MercadoPago. En breves instantes tu cuenta se actualizará automáticamente y tendrás acceso completo e ilimitado.
+                </p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg fw-semibold shadow-sm">
+                        <i class="bi bi-speedometer2 me-2"></i>Ir al Dashboard
+                    </a>
+                    <a href="{% url 'subscriptions:planes' %}" class="btn btn-outline-secondary">
+                        Ver estado de mi plan
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
