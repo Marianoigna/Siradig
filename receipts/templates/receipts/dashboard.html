@@ -21,6 +21,19 @@
                         <i class="bi bi-dash-circle me-1"></i>Telegram no vinculado
                     </span>
                 {% endif %}
+                {% if estado_cuenta.es_trial and estado_cuenta.tiene_acceso %}
+                    <span class="badge bg-primary-subtle text-primary ms-2 border border-primary-subtle">
+                        <i class="bi bi-clock-history me-1"></i>Prueba gratuita: {{ estado_cuenta.dias_restantes_trial }} días restantes
+                    </span>
+                {% elif estado_cuenta.motivo == 'suscripcion_activa' %}
+                    <span class="badge bg-success-subtle text-success ms-2 border border-success-subtle">
+                        <i class="bi bi-star-fill me-1"></i>Suscripción Premium Activa
+                    </span>
+                {% elif not estado_cuenta.tiene_acceso %}
+                    <span class="badge bg-danger-subtle text-danger ms-2 border border-danger-subtle">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Acceso vencido
+                    </span>
+                {% endif %}
             </p>
         </div>
         <div class="col-12 col-md-5 d-flex gap-2 justify-content-md-end flex-wrap">
@@ -33,6 +46,43 @@
             </a>
         </div>
     </div>
+
+    <!-- Banners de Alerta de Suscripción / Período de Prueba -->
+    {% if not estado_cuenta.tiene_acceso %}
+        <div class="alert alert-danger d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 shadow-sm border-0" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-danger"></i>
+                <div>
+                    <h5 class="alert-heading fw-bold mb-1">Tu período de acceso ha finalizado</h5>
+                    <p class="mb-0 small">
+                        Tu período de prueba o suscripción ha vencido. Activá tu plan para continuar procesando tickets vía Telegram y sincronizando deducciones con SIRADIG.
+                    </p>
+                </div>
+            </div>
+            <div>
+                <a href="{% url 'subscriptions:planes' %}" class="btn btn-danger text-white fw-semibold px-3 shadow-sm">
+                    <i class="bi bi-lightning-charge-fill me-1"></i>Activar Suscripción
+                </a>
+            </div>
+        </div>
+    {% elif estado_cuenta.es_trial and estado_cuenta.dias_restantes_trial <= 3 %}
+        <div class="alert alert-warning d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 shadow-sm border-0" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-clock-history fs-3 me-3 text-warning"></i>
+                <div>
+                    <h5 class="alert-heading fw-bold mb-1">Tu prueba gratuita finaliza pronto</h5>
+                    <p class="mb-0 small">
+                        Te quedan <strong>{{ estado_cuenta.dias_restantes_trial }} días</strong> de acceso gratuito. Suscribite hoy para no interrumpir la carga automática de tus deducciones.
+                    </p>
+                </div>
+            </div>
+            <div>
+                <a href="{% url 'subscriptions:planes' %}" class="btn btn-warning text-dark fw-semibold px-3 shadow-sm">
+                    <i class="bi bi-star-fill me-1"></i>Ver Planes
+                </a>
+            </div>
+        </div>
+    {% endif %}
 
     <!-- Sección de Token para Extensión del Navegador -->
     <div class="card border-0 shadow-sm mb-4 bg-white">

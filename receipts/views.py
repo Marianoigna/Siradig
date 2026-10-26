@@ -12,6 +12,8 @@ from rest_framework import generics, permissions
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 
+from subscriptions.services.access import obtener_estado_cuenta
+
 from .models import Receipt, UserProfile
 from .serializers import ReceiptSerializer
 from .services import ocr as ocr_service
@@ -43,11 +45,13 @@ def dashboard_home(request):
     conteo_error = receipts.filter(estado="error_carga").count()
     total_deducible_pesos = sum(r.importe_total or 0 for r in receipts)
     total_comprobantes = receipts.count()
+    estado_cuenta = obtener_estado_cuenta(request.user)
 
     context = {
         "user": request.user,
         "profile": profile,
         "token": token.key,
+        "estado_cuenta": estado_cuenta,
         "receipts": receipts,
         "total_comprobantes": total_comprobantes,
         "total_deducible_pesos": total_deducible_pesos,

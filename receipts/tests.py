@@ -612,6 +612,13 @@ class LandingAndAuthAccessTests(TestCase):
         )
         self.assertIn("/accounts/login/", content)
         self.assertIn("/accounts/signup/", content)
+        # Sección de planes en landing
+        self.assertIn("Elegí tu Plan", content)
+        self.assertIn("Plan Free (Prueba Gratuita de 15 días)", content)
+        self.assertIn("Plan Premium (Suscripción)", content)
+        self.assertIn("Probar Gratis", content)
+        self.assertIn("Sin tarjeta de crédito para empezar.", content)
+        self.assertIn("Carga y deducción ilimitada todo el año fiscal.", content)
 
     def test_authenticated_user_accessing_root_redirects_to_dashboard(self):
         """RF-AUTH-003, CA-AUTH-002: Usuario autenticado en '/' redirige a '/dashboard/' con HTTP 302."""
@@ -1355,3 +1362,62 @@ class DashboardViewAndTemplateTests(TestCase):
         response = self.client.post("/accounts/logout/")
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, "/", target_status_code=200)
+
+    def test_dashboard_subscription_badges_and_banners(self):
+        """RF-013, CA-003: Badges y banners de suscripción / trial en Dashboard."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from subscriptions.models import Suscripcion
+
+        # 1. Usuario en trial activo con más de 3 días (ej. 10 días restantes)
+        self.user.profile.trial_start_date = timezone.now() - timedelta(days=5)
+        self.user.profile.save()
+
+        self.client.force_login(self.user)
+        response = self.client.get("/dashboard/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("estado_cuenta", response.context)
+        content = response.content.decode("utf-8")
+        self.assertIn("Prueba gratuita: 10 días restantes", content)
+        self.assertNotIn("Tu período de acceso ha finalizado", content)
+        self.assertNotIn("Tu prueba gratuita finaliza pronto", content)
+
+        # 2. Usuario en trial activo por vencer (<= 3 días, ej. 2 días restantes)
+        self.user.profile.trial_start_date = timezone.now() - timedelta(days=13)
+        self.user.profile.save()
+
+        response = self.client.get("/dashboard/")
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode("utf-8")
+        self.assertIn("Prueba gratuita: 2 días restantes", content)
+        self.assertIn("Tu prueba gratuita finaliza pronto", content)
+        self.assertIn("/suscripciones/planes/", content)
+
+        # 3. Usuario con acceso vencido (trial expirado, sin suscripción)
+        self.user.profile.trial_start_date = timezone.now() - timedelta(days=20)
+        self.user.profile.save()
+
+        response = self.client.get("/dashboard/")
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode("utf-8")
+        self.assertIn("Acceso vencido", content)
+        self.assertIn("Tu período de acceso ha finalizado", content)
+        self.assertIn("Activar Suscripción", content)
+        self.assertIn("/suscripciones/planes/", content)
+
+        # 4. Usuario con suscripción premium activa
+        Suscripcion.objects.create(
+            usuario=self.user,
+            estado="activa",
+            fecha_vencimiento=timezone.now() + timedelta(days=30),
+        )
+
+        response = self.client.get("/dashboard/")
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode("utf-8")
+        self.assertIn("Suscripción Premium Activa", content)
+        self.assertNotIn("Acceso vencido", content)
+        self.assertNotIn("Tu período de acceso ha finalizado", content)
+        self.assertNotIn("Tu prueba gratuita finaliza pronto", content)

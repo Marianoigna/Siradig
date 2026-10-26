@@ -98,6 +98,130 @@
     </div>
 </section>
 
+<!-- Planes y Tipos de Usuario Section -->
+<section class="py-5 bg-light border-top" id="planes">
+    <div class="container py-4">
+        <div class="text-center mb-5">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill mb-2 fw-medium">
+                Transparente y sin sorpresas
+            </span>
+            <h2 class="fw-bold">Elegí tu Plan</h2>
+            <p class="text-secondary">Empezá gratis hoy y descubrí la forma más ágil de cargar tus comprobantes en AFIP/ARCA.</p>
+        </div>
+
+        <div class="row justify-content-center g-4 align-items-stretch">
+            <!-- Card Plan Free -->
+            <div class="col-lg-5 col-md-6">
+                <div class="card h-100 border-0 shadow-sm rounded-4">
+                    <div class="card-body p-4 p-lg-5 d-flex flex-column">
+                        <div class="mb-3">
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1 rounded-pill fw-medium">
+                                Prueba Gratuita
+                            </span>
+                        </div>
+                        <h3 class="h4 fw-bold mb-2">Plan Free (Prueba Gratuita de 15 días)</h3>
+                        <p class="text-secondary small mb-4">Ideal para probar todas las funciones sin ningún compromiso.</p>
+                        
+                        <div class="d-flex align-items-baseline mb-4">
+                            <span class="display-5 fw-bold text-dark">$0</span>
+                            <span class="text-muted ms-2">/ 15 días</span>
+                        </div>
+
+                        <ul class="list-unstyled mb-4 d-flex flex-column gap-3">
+                            <li class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                                <span>Sin tarjeta de crédito para empezar.</span>
+                            </li>
+                            <li class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                                <span>Extracción inteligente OCR con IA Gemini.</span>
+                            </li>
+                            <li class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                                <span>Envío de comprobantes vía Telegram.</span>
+                            </li>
+                            <li class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                                <span>Extensión de navegador para carga en AFIP F572.</span>
+                            </li>
+                            <li class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                                <span>Válido por 15 días desde el registro.</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-auto pt-2">
+                            <a href="{% url 'account_signup' %}" class="btn btn-outline-primary btn-lg w-100 fw-semibold rounded-pill">
+                                Probar Gratis
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Plan Premium -->
+            <div class="col-lg-5 col-md-6">
+                <div class="card h-100 border-2 border-primary shadow rounded-4 position-relative">
+                    <div class="position-absolute top-0 end-0 translate-middle-y me-4">
+                        <span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm fw-semibold">
+                            <i class="bi bi-star-fill me-1"></i>Recomendado
+                        </span>
+                    </div>
+                    <div class="card-body p-4 p-lg-5 d-flex flex-column">
+                        <div class="mb-3">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill fw-medium">
+                                Acceso Total
+                            </span>
+                        </div>
+                        <h3 class="h4 fw-bold mb-2">Plan Premium (Suscripción)</h3>
+                        <p class="text-secondary small mb-4">Automatización continua e ilimitada para todo tu año fiscal.</p>
+                        
+                        <div class="d-flex align-items-baseline mb-4">
+                            <span class="display-5 fw-bold text-primary">Suscripción</span>
+                            <span class="text-muted ms-2">/ todo el año fiscal</span>
+                        </div>
+
+                        <ul class="list-unstyled mb-4 d-flex flex-column gap-3">
+                            <li class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-primary me-2 mt-1"></i>
+                                <span>Carga y deducción ilimitada todo el año fiscal.</span>
+                            </li>
+                            <li class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-primary me-2 mt-1"></i>
+                                <span>Todo lo del período de prueba sin límite de tiempo.</span>
+                            </li>
+                            <li class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-primary me-2 mt-1"></i>
+                                <span>Extracción inteligente OCR con IA Gemini.</span>
+                            </li>
+                            <li class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-primary me-2 mt-1"></i>
+                                <span>Soporte prioritario.</span>
+                            </li>
+                            <li class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-primary me-2 mt-1"></i>
+                                <span>Cancelación inmediata en cualquier momento.</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-auto pt-2">
+                            {% if request.user.is_authenticated %}
+                                <a href="{% url 'subscriptions:planes' %}" class="btn btn-primary btn-lg w-100 fw-semibold rounded-pill shadow-sm">
+                                    <i class="bi bi-lightning-charge-fill me-1"></i>Suscribirme
+                                </a>
+                            {% else %}
+                                <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg w-100 fw-semibold rounded-pill shadow-sm">
+                                    <i class="bi bi-lightning-charge-fill me-1"></i>Comenzar Ahora
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- Call to Action Section -->
 <section class="py-5 bg-primary text-white text-center">
     <div class="container py-4">
