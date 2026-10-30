@@ -48,3 +48,7 @@ services:
         sync: false
       - key: MERCADOPAGO_WEBHOOK_SECRET
         sync: false
+      - key: MERCADOPAGO_BACK_URL
+        sync: false
+      - key: MERCADOPAGO_AUTO_RETURN_URL
+        sync: false
