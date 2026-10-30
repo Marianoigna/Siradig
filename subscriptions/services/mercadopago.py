@@ -15,6 +15,59 @@ from subscriptions.models import Plan, Suscripcion
 logger = logging.getLogger(__name__)
 
 
+def _resolver_back_url(request: Any | None = None) -> str:
+    """
+    Resuelve la URL de retorno (back_url) para el checkout de Mercado Pago.
+
+    Prioridad:
+      1. settings.MERCADOPAGO_BACK_URL
+      2. settings.MERCADOPAGO_AUTO_RETURN_URL
+      3. request.build_absolute_uri(reverse("subscriptions:retorno"))
+      4. "/" como último recurso (sin localhost hardcodeado)
+    """
+    base_back_url = getattr(settings, "MERCADOPAGO_BACK_URL", "")
+    auto_return_url = getattr(settings, "MERCADOPAGO_AUTO_RETURN_URL", "")
+
+    if base_back_url:
+        return base_back_url.rstrip("/")
+
+    if auto_return_url:
+        return auto_return_url.rstrip("/")
+
+    if request is not None:
+        try:
+            return request.build_absolute_uri(reverse("subscriptions:retorno"))
+        except Exception:
+            try:
+                return request.build_absolute_uri("/")
+            except Exception:
+                pass
+
+    return "/"
+
+
+def _resolver_payer_email(usuario: Any) -> str:
+    """
+    Resuelve el email del pagador para Mercado Pago.
+
+    En entornos de prueba (token TEST), Mercado Pago requiere emails de usuarios
+    de prueba registrados en su dashboard de desarrollador. Se soporta
+    settings.MERCADOPAGO_TEST_PAYER_EMAIL para sobrescribir el email por defecto.
+    """
+    test_email = getattr(settings, "MERCADOPAGO_TEST_PAYER_EMAIL", "")
+    if test_email:
+        logger.info("Usando MERCADOPAGO_TEST_PAYER_EMAIL como payer_email: %s", test_email)
+        return test_email
+
+    email = getattr(usuario, "email", None) or ""
+    if email:
+        return email
+
+    # Fallback: email sintácticamente válido (aunque MP lo rechazará en TEST sin
+    # un usuario de prueba real configurado)
+    return f"user_{getattr(usuario, 'id', 'unknown')}@siradigauto.com"
+
+
 def obtener_sdk_mercadopago() -> mercadopago.SDK:
     """
     Obtiene e inicializa la instancia del cliente SDK de MercadoPago
@@ -40,11 +93,7 @@ def crear_o_asegurar_plan_mercadopago(
     """
     sdk = obtener_sdk_mercadopago()
 
-    back_url = getattr(settings, "MERCADOPAGO_BACK_URL", "")
-    if not back_url:
-        back_url = getattr(
-            settings, "MERCADOPAGO_AUTO_RETURN_URL", "http://localhost:8000"
-        )
+    back_url = _resolver_back_url()
 
     plan_data = {
         "reason": nombre,
@@ -141,40 +190,15 @@ def crear_suscripcion_preapproval(
     frequency = plan.periodicidad_meses if plan else 1
     reason = f"Suscripción {plan.nombre if plan else 'Mensual'} - SIRADIG Auto"
 
-    # Resolver back_url (RN-007 / settings.MERCADOPAGO_BACK_URL)
-    base_back_url = getattr(settings, "MERCADOPAGO_BACK_URL", "")
-    auto_return_url = getattr(settings, "MERCADOPAGO_AUTO_RETURN_URL", "")
+    # Resolver back_url
+    back_url = _resolver_back_url(request=request)
 
-    if auto_return_url and auto_return_url != getattr(
-        settings, "MERCADOPAGO_BACK_URL", ""
-    ):
-        back_url = auto_return_url
-    elif base_back_url and not (
-        base_back_url.startswith("http://localhost:8000")
-        and auto_return_url
-        and not auto_return_url.startswith("http://localhost:8000")
-    ):
-        base_clean = base_back_url.rstrip("/")
-        if base_clean.endswith("/suscripciones/retorno") or base_clean.endswith(
-            "/suscripciones/pago-exitoso"
-        ):
-            back_url = base_clean
-        else:
-            back_url = f"{base_clean}/suscripciones/pago-exitoso/"
-    elif auto_return_url:
-        back_url = auto_return_url
-    elif request:
-        try:
-            back_url = request.build_absolute_uri(reverse("subscriptions:retorno"))
-        except Exception:
-            back_url = request.build_absolute_uri("/")
-    else:
-        back_url = "http://localhost:8000/suscripciones/pago-exitoso/"
-
-    payer_email = (
-        usuario.email
-        if getattr(usuario, "email", None)
-        else f"user_{usuario.id}@siradigauto.com"
+    payer_email = _resolver_payer_email(usuario)
+    logger.info(
+        "Creando preapproval para usuario %s con payer_email=%s y back_url=%s",
+        getattr(usuario, "id", None),
+        payer_email,
+        back_url,
     )
 
     preapproval_data: dict[str, Any] = {
@@ -182,7 +206,6 @@ def crear_suscripcion_preapproval(
         "back_url": back_url,
         "reason": reason,
         "external_reference": f"{usuario.id}:{plan_slug}",
-        "status": "pending",
         "auto_recurring": {
             "frequency": frequency,
             "frequency_type": "months",
