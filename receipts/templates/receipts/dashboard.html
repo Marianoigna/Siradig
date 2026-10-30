@@ -23,11 +23,11 @@
                 {% endif %}
                 {% if estado_cuenta.es_trial and estado_cuenta.tiene_acceso %}
                     <a href="{% url 'subscriptions:planes' %}" class="badge bg-primary-subtle text-primary ms-2 border border-primary-subtle text-decoration-none">
-                        <i class="bi bi-clock-history me-1"></i>Prueba gratuita: {{ estado_cuenta.dias_restantes_trial }} días restantes
+                        <i class="bi bi-clock-history me-1"></i>Período de prueba: {{ estado_cuenta.dias_restantes_trial }} días restantes
                     </a>
                 {% elif estado_cuenta.motivo == 'suscripcion_activa' %}
                     <a href="{% url 'subscriptions:planes' %}" class="badge bg-success-subtle text-success ms-2 border border-success-subtle text-decoration-none">
-                        <i class="bi bi-star-fill me-1"></i>Suscripción Premium Activa
+                        <i class="bi bi-star-fill me-1"></i>Suscripción Mensual Activa ($8.999 ARS{% if estado_cuenta.fecha_vencimiento %} - Vence: {{ estado_cuenta.fecha_vencimiento|date:"d/m/Y" }}{% endif %})
                     </a>
                 {% elif not estado_cuenta.tiene_acceso %}
                     <a href="{% url 'subscriptions:planes' %}" class="badge bg-danger-subtle text-danger ms-2 border border-danger-subtle text-decoration-none">
@@ -56,9 +56,9 @@
             <div class="d-flex align-items-center">
                 <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-danger"></i>
                 <div>
-                    <h5 class="alert-heading fw-bold mb-1">Tu período de acceso ha finalizado</h5>
+                    <h5 class="alert-heading fw-bold mb-1">Tu período de prueba ha finalizado</h5>
                     <p class="mb-0 small">
-                        Tu período de prueba o suscripción ha vencido. Activá tu plan para continuar procesando tickets vía Telegram y sincronizando deducciones con SIRADIG.
+                        Tu período de prueba ha finalizado. Suscribite al Plan Mensual para continuar cargando comprobantes en SIRADIG.
                     </p>
                 </div>
             </div>

@@ -31,7 +31,7 @@ def planes_view(request: HttpRequest) -> HttpResponse:
     Muestra la grilla de planes activos disponibles y el estado actual de la cuenta
     (período de prueba o suscripción activa).
     """
-    planes = Plan.objects.filter(activo=True).order_by("precio")
+    planes = Plan.objects.filter(activo=True).order_by("precio_mensual")
     estado_cuenta = obtener_estado_cuenta(request.user)
     suscripcion = getattr(request.user, "suscripcion", None)
 
@@ -59,12 +59,12 @@ def iniciar_checkout_view(request: HttpRequest, tipo_plan: str) -> HttpResponse:
     if request.method != "POST":
         return redirect("subscriptions:planes")
 
-    plan = get_object_or_404(Plan, tipo=tipo_plan, activo=True)
+    plan = get_object_or_404(Plan, nombre=tipo_plan, activo=True)
 
     try:
         resultado = crear_suscripcion_preapproval(
             usuario=request.user,
-            plan=plan,
+            tipo_plan=plan,
             request=request,
         )
     except Exception as e:

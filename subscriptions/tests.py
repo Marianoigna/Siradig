@@ -13,6 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from subscriptions.models import Pago, Plan, Suscripcion
+from subscriptions.permissions import HasActiveSubscriptionOrTrial
 from subscriptions.services.access import (
     calcular_dias_restantes_trial,
     dias_restantes_trial,
@@ -22,6 +23,7 @@ from subscriptions.services.access import (
 )
 from subscriptions.services.mercadopago import (
     cancelar_suscripcion_preapproval,
+    crear_o_asegurar_plan_mercadopago,
     crear_suscripcion_preapproval,
     obtener_sdk_mercadopago,
 )
@@ -33,34 +35,26 @@ from subscriptions.services.webhook import (
 
 class PlanModelTests(TestCase):
     def test_creacion_plan_mensual(self):
-        # El plan mensual ya puede existir debido a la migración seed
-        plan, _ = Plan.objects.update_or_create(
-            tipo="mensual",
-            defaults={
-                "nombre": "Plan Mensual Standard",
-                "precio": Decimal("15000.00"),
-                "periodicidad_meses": 1,
-                "dias_duracion": 30,
-                "descripcion": "Acceso mensual completo a SIRADIG Auto",
-                "activo": True,
-            },
+        plan = Plan.objects.create(
+            nombre="plan_test_mensual",
+            descripcion="Plan Mensual de prueba",
+            dias_duracion=30,
         )
-        self.assertEqual(str(plan), "Plan Mensual Standard (Mensual) - $15000.00")
-        self.assertTrue(plan.activo)
-        self.assertEqual(plan.tipo, "mensual")
+        self.assertEqual(plan.precio_mensual, Decimal("8999.00"))
+        self.assertEqual(plan.dias_duracion, 30)
+        self.assertEqual(plan.gateway_plan_id, "")
+        self.assertIn("plan_test_mensual", str(plan))
+        self.assertIn("8999.00", str(plan))
 
-    def test_tipo_plan_unico(self):
-        Plan.objects.filter(tipo="anual").delete()
+    def test_nombre_plan_unico(self):
         Plan.objects.create(
-            nombre="Plan Anual 1",
-            tipo="anual",
-            precio=Decimal("150000.00"),
+            nombre="plan_unico_test",
+            precio_mensual=Decimal("8999.00"),
         )
         with self.assertRaises(IntegrityError):
             Plan.objects.create(
-                nombre="Plan Anual 2",
-                tipo="anual",
-                precio=Decimal("160000.00"),
+                nombre="plan_unico_test",
+                precio_mensual=Decimal("9999.00"),
             )
 
 
@@ -72,11 +66,9 @@ class SuscripcionModelTests(TestCase):
             password="securepassword123",
         )
         self.plan, _ = Plan.objects.get_or_create(
-            tipo="mensual",
+            nombre="mensual",
             defaults={
-                "nombre": "Plan Mensual",
-                "precio": Decimal("15000.00"),
-                "periodicidad_meses": 1,
+                "precio_mensual": Decimal("8999.00"),
                 "dias_duracion": 30,
             },
         )
@@ -108,14 +100,23 @@ class SuscripcionModelTests(TestCase):
         )
         self.assertFalse(suscripcion.esta_vigente)
 
-    def test_propiedad_esta_vigente_falsa_si_estado_no_activa(self):
+    def test_propiedad_esta_vigente_falsa_si_estado_no_activa_ni_cancelada(self):
+        suscripcion = Suscripcion.objects.create(
+            usuario=self.user,
+            plan=self.plan,
+            estado="vencida",
+            fecha_vencimiento=timezone.now() + timedelta(days=15),
+        )
+        self.assertFalse(suscripcion.esta_vigente)
+
+    def test_propiedad_esta_vigente_verdadera_si_cancelada_con_fecha_futura(self):
         suscripcion = Suscripcion.objects.create(
             usuario=self.user,
             plan=self.plan,
             estado="cancelada",
             fecha_vencimiento=timezone.now() + timedelta(days=15),
         )
-        self.assertFalse(suscripcion.esta_vigente)
+        self.assertTrue(suscripcion.esta_vigente)
 
     def test_usuario_unico_por_suscripcion(self):
         Suscripcion.objects.create(
@@ -137,10 +138,10 @@ class PagoModelTests(TestCase):
             password="securepassword123",
         )
         self.plan, _ = Plan.objects.get_or_create(
-            tipo="mensual",
+            nombre="mensual",
             defaults={
-                "nombre": "Plan Mensual",
-                "precio": Decimal("15000.00"),
+                "precio_mensual": Decimal("8999.00"),
+                "dias_duracion": 30,
             },
         )
         self.suscripcion = Suscripcion.objects.create(
@@ -155,12 +156,13 @@ class PagoModelTests(TestCase):
             usuario=self.user,
             suscripcion=self.suscripcion,
             referencia_gateway="mp_pay_123456789",
-            monto=Decimal("15000.00"),
+            monto=Decimal("8999.00"),
             metodo="mercadopago",
             exitoso=True,
             datos_gateway={"status": "approved", "id": 123456789},
         )
-        self.assertEqual(str(pago), "Pago mp_pay_123456789 - $15000.00 (Exitoso)")
+        self.assertEqual(str(pago), "Pago mp_pay_123456789 - $8999.00 (Exitoso)")
+        self.assertEqual(pago.fecha, pago.fecha_pago)
         self.assertEqual(pago.datos_gateway["status"], "approved")
 
     def test_unicidad_referencia_gateway(self):
@@ -168,14 +170,14 @@ class PagoModelTests(TestCase):
             usuario=self.user,
             suscripcion=self.suscripcion,
             referencia_gateway="mp_duplicate_ref",
-            monto=Decimal("15000.00"),
+            monto=Decimal("8999.00"),
         )
         with self.assertRaises(IntegrityError):
             Pago.objects.create(
                 usuario=self.user,
                 suscripcion=self.suscripcion,
                 referencia_gateway="mp_duplicate_ref",
-                monto=Decimal("15000.00"),
+                monto=Decimal("8999.00"),
             )
 
 
@@ -187,11 +189,9 @@ class AccessServiceTests(TestCase):
             password="securepassword123",
         )
         self.plan, _ = Plan.objects.get_or_create(
-            tipo="mensual",
+            nombre="mensual",
             defaults={
-                "nombre": "Plan Mensual",
-                "precio": Decimal("30000.00"),
-                "periodicidad_meses": 1,
+                "precio_mensual": Decimal("8999.00"),
                 "dias_duracion": 30,
             },
         )
@@ -305,6 +305,52 @@ class AccessServiceTests(TestCase):
         self.assertEqual(estado["suscripcion"], sub)
         self.assertFalse(usuario_tiene_acceso_activo(self.user))
 
+    def test_usuario_con_trial_expirado_y_suscripcion_cancelada_con_vigencia_conserva_acceso(
+        self,
+    ):
+        # RN-005: Conserva acceso hasta fecha_vencimiento aunque esté cancelada
+        profile = self.user.profile
+        profile.trial_start_date = timezone.now() - timedelta(days=20)
+        profile.save()
+
+        sub = Suscripcion.objects.create(
+            usuario=self.user,
+            plan=self.plan,
+            estado="cancelada",
+            fecha_vencimiento=timezone.now() + timedelta(days=12),
+        )
+
+        estado = obtener_estado_cuenta(self.user)
+        self.assertTrue(estado["tiene_acceso"])
+        self.assertTrue(estado["suscripcion_activa"])
+        self.assertEqual(estado["estado_suscripcion"], "cancelada")
+        self.assertEqual(estado["motivo"], "suscripcion_activa")
+        self.assertEqual(estado["suscripcion"], sub)
+        self.assertGreaterEqual(estado["dias_restantes_suscripcion"], 11)
+        self.assertTrue(usuario_tiene_acceso_activo(self.user))
+
+    def test_superuser_y_staff_siempre_tienen_acceso_activo(self):
+        self.user.is_staff = True
+        self.user.save()
+        # Perfil con trial expirado y sin suscripción
+        profile = self.user.profile
+        profile.trial_start_date = timezone.now() - timedelta(days=40)
+        profile.save()
+
+        self.assertTrue(usuario_tiene_acceso_activo(self.user))
+        estado = obtener_estado_cuenta(self.user)
+        self.assertTrue(estado["tiene_acceso"])
+        self.assertEqual(estado["motivo"], "admin")
+
+    def test_calculo_dias_restantes_trial_preciso(self):
+        profile = self.user.profile
+        # Exactamente 5 días transcurridos de 15 -> restan 10
+        profile.trial_start_date = timezone.now() - timedelta(days=5)
+        profile.save()
+
+        dias = dias_restantes_trial(self.user)
+        self.assertIn(dias, (10, 11))  # Por segundos de redondeo ceil
+
     def test_usuario_sin_perfil_manejo_seguro(self):
         # Simulamos un usuario cuyo perfil no existe
         self.user.profile.delete()
@@ -324,16 +370,13 @@ class MercadoPagoServiceTests(TestCase):
             password="securepassword123",
         )
         self.plan, _ = Plan.objects.get_or_create(
-            tipo="mensual",
+            nombre="mensual",
             defaults={
-                "nombre": "Plan Mensual",
-                "precio": Decimal("30000.00"),
-                "periodicidad_meses": 1,
+                "precio_mensual": Decimal("8999.00"),
                 "dias_duracion": 30,
             },
         )
-        # Aseguramos el precio esperado para las aserciones de mock de MercadoPago
-        self.plan.precio = Decimal("30000.00")
+        self.plan.precio_mensual = Decimal("8999.00")
         self.plan.save()
 
     def test_obtener_sdk_sin_token_lanza_excepcion(self):
@@ -393,7 +436,7 @@ class MercadoPagoServiceTests(TestCase):
             )
             self.assertEqual(call_payload["auto_recurring"]["frequency"], 1)
             self.assertEqual(
-                call_payload["auto_recurring"]["transaction_amount"], 30000.0
+                call_payload["auto_recurring"]["transaction_amount"], 8999.0
             )
 
             # Verificar actualización/creación en base de datos local
@@ -477,22 +520,152 @@ class MercadoPagoServiceTests(TestCase):
             self.assertIsNotNone(suscripcion.fecha_cancelacion)
 
     @patch("subscriptions.services.mercadopago.mercadopago.SDK")
-    def test_cancelar_suscripcion_sin_gateway_id_cancela_local(self, mock_sdk_class):
+    def test_cancelar_suscripcion_por_string_id(self, mock_sdk_class):
+        mock_sdk_instance = MagicMock()
+        mock_preapproval = MagicMock()
+        mock_sdk_instance.preapproval.return_value = mock_preapproval
+        mock_sdk_class.return_value = mock_sdk_instance
+        mock_preapproval.update.return_value = {
+            "status": 200,
+            "response": {"status": "cancelled"},
+        }
+
         suscripcion = Suscripcion.objects.create(
             usuario=self.user,
             plan=self.plan,
-            estado="trial",
-            gateway_subscription_id="",
+            estado="activa",
+            gateway_subscription_id="sub_string_999",
+            fecha_vencimiento=timezone.now() + timedelta(days=10),
         )
 
         with override_settings(MERCADOPAGO_ACCESS_TOKEN="TEST_TOKEN_123"):
-            resultado = cancelar_suscripcion_preapproval(suscripcion)
-
-            self.assertTrue(resultado)
-            mock_sdk_class.assert_not_called()
+            res = cancelar_suscripcion_preapproval("sub_string_999")
+            self.assertTrue(res)
+            mock_preapproval.update.assert_called_once_with(
+                "sub_string_999", {"status": "cancelled"}
+            )
             suscripcion.refresh_from_db()
             self.assertEqual(suscripcion.estado, "cancelada")
-            self.assertIsNotNone(suscripcion.fecha_cancelacion)
+
+    @patch("subscriptions.services.mercadopago.mercadopago.SDK")
+    def test_crear_o_asegurar_plan_mercadopago_exitoso(self, mock_sdk_class):
+        mock_sdk_instance = MagicMock()
+        mock_plan_service = MagicMock()
+        mock_sdk_instance.preapproval_plan.return_value = mock_plan_service
+        mock_sdk_class.return_value = mock_sdk_instance
+
+        mock_plan_service.create.return_value = {
+            "status": 201,
+            "response": {"id": "mp_plan_abc123", "status": "active"},
+        }
+
+        with override_settings(
+            MERCADOPAGO_ACCESS_TOKEN="TEST_TOKEN_123",
+            MERCADOPAGO_BACK_URL="https://siradig.example.com",
+        ):
+            plan_id = crear_o_asegurar_plan_mercadopago(
+                nombre="Plan Mensual SIRADIG Auto",
+                monto=Decimal("8999.00"),
+                periodicidad_meses=1,
+            )
+            self.assertEqual(plan_id, "mp_plan_abc123")
+            mock_plan_service.create.assert_called_once()
+            call_args = mock_plan_service.create.call_args[0][0]
+            self.assertEqual(call_args["reason"], "Plan Mensual SIRADIG Auto")
+            self.assertEqual(call_args["auto_recurring"]["frequency"], 1)
+            self.assertEqual(call_args["auto_recurring"]["frequency_type"], "months")
+            self.assertEqual(call_args["auto_recurring"]["transaction_amount"], 8999.0)
+            self.assertEqual(call_args["auto_recurring"]["currency_id"], "ARS")
+
+            self.plan.refresh_from_db()
+            self.assertEqual(self.plan.gateway_plan_id, "mp_plan_abc123")
+
+    @patch("subscriptions.services.mercadopago.mercadopago.SDK")
+    def test_crear_o_asegurar_plan_mercadopago_error_api(self, mock_sdk_class):
+        mock_sdk_instance = MagicMock()
+        mock_plan_service = MagicMock()
+        mock_sdk_instance.preapproval_plan.return_value = mock_plan_service
+        mock_sdk_class.return_value = mock_sdk_instance
+
+        mock_plan_service.create.return_value = {
+            "status": 400,
+            "response": {"message": "Invalid transaction amount"},
+        }
+
+        with override_settings(MERCADOPAGO_ACCESS_TOKEN="TEST_TOKEN_123"):
+            with self.assertRaises(RuntimeError) as ctx:
+                crear_o_asegurar_plan_mercadopago()
+            self.assertIn("Invalid transaction amount", str(ctx.exception))
+
+
+class EnsureMercadoPagoPlanCommandTests(TestCase):
+    def setUp(self):
+        Plan.objects.all().delete()
+
+    def test_ensure_plan_crea_plan_local_sin_token(self):
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        out = StringIO()
+        with override_settings(
+            MERCADOPAGO_ACCESS_TOKEN="", PRECIO_MENSUAL=Decimal("8999.00")
+        ):
+            call_command("ensure_mercadopago_plan", stdout=out)
+
+        plan = Plan.objects.get(nombre="mensual")
+        self.assertEqual(plan.precio_mensual, Decimal("8999.00"))
+        self.assertEqual(plan.dias_duracion, 30)
+        self.assertEqual(plan.gateway_plan_id, "")
+        output = out.getvalue()
+        self.assertIn("Plan local 'mensual' creado exitosamente", output)
+        self.assertIn("MERCADOPAGO_ACCESS_TOKEN no está configurado", output)
+
+    @patch(
+        "subscriptions.management.commands.ensure_mercadopago_plan.crear_o_asegurar_plan_mercadopago"
+    )
+    def test_ensure_plan_con_token_sincroniza_con_mercadopago(self, mock_crear_plan):
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        mock_crear_plan.return_value = "plan_mp_generated_99"
+
+        out = StringIO()
+        with override_settings(
+            MERCADOPAGO_ACCESS_TOKEN="TEST_TOKEN_123", PRECIO_MENSUAL=Decimal("8999.00")
+        ):
+            call_command("ensure_mercadopago_plan", stdout=out)
+
+        mock_crear_plan.assert_called_once()
+        output = out.getvalue()
+        self.assertIn("Plan aprovisionado exitosamente en Mercado Pago", output)
+
+    @patch(
+        "subscriptions.management.commands.ensure_mercadopago_plan.crear_o_asegurar_plan_mercadopago"
+    )
+    def test_ensure_plan_si_ya_tiene_gateway_plan_id_no_lo_recrea(
+        self, mock_crear_plan
+    ):
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        Plan.objects.create(
+            nombre="mensual",
+            precio_mensual=Decimal("8999.00"),
+            dias_duracion=30,
+            gateway_plan_id="existing_plan_id_77",
+        )
+
+        out = StringIO()
+        with override_settings(MERCADOPAGO_ACCESS_TOKEN="TEST_TOKEN_123"):
+            call_command("ensure_mercadopago_plan", stdout=out)
+
+        mock_crear_plan.assert_not_called()
+        self.assertIn(
+            "El plan ya cuenta con un identificador de Mercado Pago", out.getvalue()
+        )
 
 
 class WebhookServiceTests(TestCase):
@@ -504,11 +677,9 @@ class WebhookServiceTests(TestCase):
             password="securepassword123",
         )
         self.plan, _ = Plan.objects.get_or_create(
-            tipo="mensual",
+            nombre="mensual",
             defaults={
-                "nombre": "Plan Mensual",
-                "precio": Decimal("30000.00"),
-                "periodicidad_meses": 1,
+                "precio_mensual": Decimal("8999.00"),
                 "dias_duracion": 30,
             },
         )
@@ -728,11 +899,9 @@ class SubscriptionViewsTests(TestCase):
             password="securepassword123",
         )
         self.plan, _ = Plan.objects.get_or_create(
-            tipo="mensual",
+            nombre="mensual",
             defaults={
-                "nombre": "Plan Mensual",
-                "precio": Decimal("30000.00"),
-                "periodicidad_meses": 1,
+                "precio_mensual": Decimal("8999.00"),
                 "dias_duracion": 30,
             },
         )
@@ -850,6 +1019,39 @@ class SubscriptionViewsTests(TestCase):
             )
             self.assertEqual(resp.status_code, 401)
 
+    def test_webhook_view_rechaza_sin_firma_cuando_secret_configurado(self):
+        secret = "super_secret_webhook"
+        with override_settings(MERCADOPAGO_WEBHOOK_SECRET=secret):
+            resp = self.client.post(
+                reverse("subscriptions:webhook"),
+                data={"data": {"id": "12345"}},
+                content_type="application/json",
+            )
+            self.assertEqual(resp.status_code, 401)
+
+    @patch("subscriptions.views.procesar_notificacion_webhook")
+    def test_webhook_view_con_firma_valida_retorna_200(self, mock_procesar):
+        mock_procesar.return_value = (True, "Pago procesado y suscripción activada")
+        secret = "super_secret_webhook"
+        data_id = "54321"
+        request_id = "req-uuid-abc"
+        ts = "1710000000"
+        manifest = f"id:{data_id};request-id:{request_id};ts:{ts};"
+        v1_hash = hmac.new(
+            secret.encode("utf-8"), manifest.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+
+        with override_settings(MERCADOPAGO_WEBHOOK_SECRET=secret):
+            resp = self.client.post(
+                reverse("subscriptions:webhook"),
+                data=json.dumps({"type": "payment", "data": {"id": data_id}}),
+                content_type="application/json",
+                HTTP_X_SIGNATURE=f"ts={ts},v1={v1_hash}",
+                HTTP_X_REQUEST_ID=request_id,
+            )
+            self.assertEqual(resp.status_code, 200)
+            mock_procesar.assert_called_once()
+
     @patch("subscriptions.views.procesar_notificacion_webhook")
     def test_webhook_view_exitoso_retorna_200(self, mock_procesar):
         mock_procesar.return_value = (True, "Pago procesado")
@@ -861,3 +1063,45 @@ class SubscriptionViewsTests(TestCase):
             )
             self.assertEqual(resp.status_code, 200)
             mock_procesar.assert_called_once()
+
+
+class HasActiveSubscriptionOrTrialPermissionTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(
+            username="permuser",
+            email="permuser@example.com",
+            password="securepassword123",
+        )
+        self.permission = HasActiveSubscriptionOrTrial()
+
+    def test_anonymous_user_returns_true_for_auth_permission_to_handle(self):
+        from django.contrib.auth.models import AnonymousUser
+
+        request = self.factory.get("/api/receipts/pending/")
+        request.user = AnonymousUser()
+        self.assertTrue(self.permission.has_permission(request, None))
+
+    def test_authenticated_user_with_active_trial_returns_true(self):
+        self.user.profile.trial_start_date = timezone.now() - timedelta(days=5)
+        self.user.profile.save()
+
+        request = self.factory.get("/api/receipts/pending/")
+        request.user = self.user
+        self.assertTrue(self.permission.has_permission(request, None))
+
+    def test_authenticated_user_with_expired_trial_raises_permission_denied(self):
+        from rest_framework.exceptions import PermissionDenied
+
+        self.user.profile.trial_start_date = timezone.now() - timedelta(days=20)
+        self.user.profile.save()
+
+        request = self.factory.get("/api/receipts/pending/")
+        request.user = self.user
+
+        with self.assertRaises(PermissionDenied) as ctx:
+            self.permission.has_permission(request, None)
+
+        exc = ctx.exception
+        self.assertEqual(exc.detail.get("code"), "subscription_required")
+        self.assertIn("Acceso restringido", exc.detail.get("detail", ""))

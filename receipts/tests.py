@@ -488,6 +488,45 @@ class WebhookIntegrationTests(TestCase):
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.telegram_chat_id, "111111")
 
+    @mock.patch("receipts.views.telegram_service")
+    @mock.patch("receipts.views.ocr_service.extraer_datos_factura")
+    def test_webhook_bloquea_ingesta_si_trial_expirado(self, mock_ocr, mock_tg):
+        """RF-010, CA-001: Usuario con trial expirado no procesa OCR ni crea Receipt, y envía mensaje amigable."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        self.profile.telegram_chat_id = "123456"
+        self.profile.trial_start_date = timezone.now() - timedelta(days=20)
+        self.profile.save()
+
+        mock_tg.send_message.return_value = None
+
+        data = {
+            "message": {
+                "chat": {"id": 123456},
+                "photo": [{"file_id": "FILE123", "file_unique_id": "UID123"}],
+            }
+        }
+        response = self.client.post(
+            "/telegram/webhook/", data=json.dumps(data), content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # No se crea comprobante ni se llama al OCR
+        self.assertEqual(Receipt.objects.filter(user=self.user).count(), 0)
+        mock_ocr.assert_not_called()
+        mock_tg.get_file_path.assert_not_called()
+        mock_tg.download_file.assert_not_called()
+
+        # Mensaje de trial finalizado al usuario
+        mock_tg.send_message.assert_called_once()
+        args, _ = mock_tg.send_message.call_args
+        self.assertEqual(args[0], 123456)
+        self.assertIn("período de prueba de 15 días ha finalizado", args[1])
+        self.assertIn("Plan Mensual ($8.999 ARS)", args[1])
+        self.assertIn("/suscripciones/planes/", args[1])
+
 
 class APITests(TestCase):
     def setUp(self):
@@ -584,6 +623,38 @@ class APITests(TestCase):
         self.assertEqual(item["cuit_emisor"], "20123456789")
         self.assertEqual(item["punto_venta"], "0001")
         self.assertEqual(item["numero_solo"], "00001234")
+
+    def test_pending_receipts_endpoint_forbidden_if_trial_expired(self):
+        """RF-011, CA-002: Usuario con trial expirado recibe HTTP 403 con code subscription_required."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        self.user.profile.trial_start_date = timezone.now() - timedelta(days=20)
+        self.user.profile.save()
+
+        response = self.api.get("/api/receipts/pending/")
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data.get("code"), "subscription_required")
+        self.assertIn("Acceso restringido", response.data.get("detail", ""))
+
+    def test_update_receipt_endpoint_forbidden_if_trial_expired(self):
+        """RF-011, CA-002: Actualización de comprobante bloqueada con HTTP 403 si trial expiró."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        receipt = Receipt.objects.create(
+            user=self.user, origen="telegram", estado="pendiente_carga"
+        )
+        self.user.profile.trial_start_date = timezone.now() - timedelta(days=20)
+        self.user.profile.save()
+
+        response = self.api.patch(
+            f"/api/receipts/{receipt.id}/", {"estado": "cargado_en_siradig"}
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data.get("code"), "subscription_required")
 
 
 class LandingAndAuthAccessTests(TestCase):
@@ -1380,8 +1451,8 @@ class DashboardViewAndTemplateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("estado_cuenta", response.context)
         content = response.content.decode("utf-8")
-        self.assertIn("Prueba gratuita: 10 días restantes", content)
-        self.assertNotIn("Tu período de acceso ha finalizado", content)
+        self.assertIn("Período de prueba: 10 días restantes", content)
+        self.assertNotIn("Tu período de prueba ha finalizado", content)
         self.assertNotIn("Tu prueba gratuita finaliza pronto", content)
 
         # 2. Usuario en trial activo por vencer (<= 3 días, ej. 2 días restantes)
@@ -1391,7 +1462,7 @@ class DashboardViewAndTemplateTests(TestCase):
         response = self.client.get("/dashboard/")
         self.assertEqual(response.status_code, 200)
         content = response.content.decode("utf-8")
-        self.assertIn("Prueba gratuita: 2 días restantes", content)
+        self.assertIn("Período de prueba: 2 días restantes", content)
         self.assertIn("Tu prueba gratuita finaliza pronto", content)
         self.assertIn("/suscripciones/planes/", content)
 
@@ -1403,7 +1474,10 @@ class DashboardViewAndTemplateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode("utf-8")
         self.assertIn("Acceso vencido", content)
-        self.assertIn("Tu período de acceso ha finalizado", content)
+        self.assertIn("Tu período de prueba ha finalizado", content)
+        self.assertIn(
+            "Suscribite al Plan Mensual para continuar cargando comprobantes", content
+        )
         self.assertIn("Activar Suscripción", content)
         self.assertIn("/suscripciones/planes/", content)
 
@@ -1417,7 +1491,7 @@ class DashboardViewAndTemplateTests(TestCase):
         response = self.client.get("/dashboard/")
         self.assertEqual(response.status_code, 200)
         content = response.content.decode("utf-8")
-        self.assertIn("Suscripción Premium Activa", content)
+        self.assertIn("Suscripción Mensual Activa ($8.999 ARS", content)
         self.assertNotIn("Acceso vencido", content)
-        self.assertNotIn("Tu período de acceso ha finalizado", content)
+        self.assertNotIn("Tu período de prueba ha finalizado", content)
         self.assertNotIn("Tu prueba gratuita finaliza pronto", content)

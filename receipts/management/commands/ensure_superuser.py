@@ -13,12 +13,17 @@ class Command(BaseCommand):
         password = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "")
 
         if not username or not password:
-            self.stdout.write(self.style.WARNING("DJANGO_SUPERUSER_USERNAME/PASSWORD no configurados, se omite."))
+            self.stdout.write(
+                self.style.WARNING(
+                    "DJANGO_SUPERUSER_USERNAME/PASSWORD no configurados, se omite."
+                )
+            )
             return
 
         User = get_user_model()
         user, created = User.objects.get_or_create(
-            username=username, defaults={"email": email, "is_staff": True, "is_superuser": True}
+            username=username,
+            defaults={"email": email, "is_staff": True, "is_superuser": True},
         )
         user.email = email or user.email
         user.is_staff = True
@@ -27,4 +32,6 @@ class Command(BaseCommand):
         user.save()
 
         accion = "creado" if created else "actualizado"
-        self.stdout.write(self.style.SUCCESS(f"Superusuario '{username}' {accion} correctamente."))
+        self.stdout.write(
+            self.style.SUCCESS(f"Superusuario '{username}' {accion} correctamente.")
+        )

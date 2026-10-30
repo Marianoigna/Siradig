@@ -55,7 +55,7 @@
                         </div>
                     {% endif %}
                     <div class="card-body p-4 d-flex flex-column">
-                        <h3 class="card-title fw-bold mb-2">{{ plan.nombre }}</h3>
+                        <h3 class="card-title fw-bold mb-2">{% if plan.tipo == 'mensual' %}Plan Mensual{% elif plan.tipo == 'anual' %}Plan Anual{% else %}{{ plan.nombre }}{% endif %}</h3>
                         <p class="text-muted small mb-4">{{ plan.descripcion|default:"Acceso completo a todas las funciones de SIRADIG Auto." }}</p>
                         <div class="my-3">
                             <span class="display-6 fw-bold text-dark">${{ plan.precio }}</span>

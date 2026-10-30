@@ -12,9 +12,17 @@
         "npx", 
         "-y", 
         "@modelcontextprotocol/server-postgres", 
-        "postgresql://siradig_db_user:VFrZyo6ZRmBMIXaliRy7OtjQ5qp6XYvJ@dpg-dap9ep2jnfac73b0bnag-a/siradig_db"
+        "postgresql://siradig_db_72we_user:gQ8qD1OP1PbWYuXJJv1BfETuVmUirns4@dpg-dbev62lg1s2s73du2aa0-a.ohio-postgres.render.com/siradig_db_72we?sslmode=require"
       ],
+      "enabled": true
+    },
+    "mercadopago": {
+      "type": "remote",
+      "url": "https://mcp.mercadopago.com/mcp",
+      "headers": {
+        "Authorization": "Bearer APP_USR-4186935004291732-102606-e4e9271c03c828be60d561394ec8e85d-3427710676"
+      },
       "enabled": true
     }
   }
-}
+}   

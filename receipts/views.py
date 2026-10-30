@@ -12,7 +12,11 @@ from rest_framework import generics, permissions
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 
-from subscriptions.services.access import obtener_estado_cuenta
+from subscriptions.permissions import HasActiveSubscriptionOrTrial
+from subscriptions.services.access import (
+    obtener_estado_cuenta,
+    usuario_tiene_acceso_activo,
+)
 
 from .models import Receipt, UserProfile
 from .serializers import ReceiptSerializer
@@ -120,6 +124,15 @@ def _handle_receipt_file(chat_id, photo, document):
         )
         return
 
+    if not usuario_tiene_acceso_activo(profile.user):
+        telegram_service.send_message(
+            chat_id,
+            "Tu período de prueba de 15 días ha finalizado. Para seguir procesando "
+            "comprobantes y cargarlos en SIRADIG, suscribite al Plan Mensual ($8.999 ARS) "
+            "en: https://siradig.onrender.com/suscripciones/planes/",
+        )
+        return
+
     if photo:
         file_id = photo[-1]["file_id"]  # la última es la de mayor resolución
         mime_type = "image/jpeg"
@@ -182,7 +195,7 @@ def _handle_receipt_file(chat_id, photo, document):
 class PendingReceiptListAPIView(generics.ListAPIView):
     serializer_class = ReceiptSerializer
     authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasActiveSubscriptionOrTrial]
 
     def get_queryset(self):
         return Receipt.objects.filter(
@@ -193,7 +206,7 @@ class PendingReceiptListAPIView(generics.ListAPIView):
 class ReceiptUpdateAPIView(generics.UpdateAPIView):
     serializer_class = ReceiptSerializer
     authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasActiveSubscriptionOrTrial]
 
     def get_queryset(self):
         return Receipt.objects.filter(user=self.request.user)

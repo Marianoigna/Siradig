@@ -7,16 +7,15 @@ from .models import Pago, Plan, Suscripcion
 class PlanAdmin(admin.ModelAdmin):
     list_display = (
         "nombre",
-        "tipo",
-        "precio",
-        "periodicidad_meses",
+        "precio_mensual",
         "dias_duracion",
+        "gateway_plan_id",
         "activo",
         "fecha_creacion",
     )
-    list_filter = ("tipo", "activo")
-    search_fields = ("nombre", "descripcion")
-    ordering = ("precio",)
+    list_filter = ("activo",)
+    search_fields = ("nombre", "descripcion", "gateway_plan_id")
+    ordering = ("precio_mensual",)
 
 
 @admin.register(Suscripcion)
@@ -54,13 +53,14 @@ class PagoAdmin(admin.ModelAdmin):
         "monto",
         "metodo",
         "exitoso",
-        "fecha_pago",
+        "fecha",
     )
-    list_filter = ("exitoso", "metodo", "fecha_pago")
+    list_filter = ("exitoso", "metodo", "fecha")
     search_fields = (
         "referencia_gateway",
         "usuario__username",
         "usuario__email",
+        "suscripcion__usuario__username",
     )
-    readonly_fields = ("fecha_pago",)
-    ordering = ("-fecha_pago",)
+    readonly_fields = ("fecha",)
+    ordering = ("-fecha",)

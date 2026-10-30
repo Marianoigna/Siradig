@@ -4,20 +4,28 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('receipts', '0002_receipt_numero_solo_receipt_punto_venta'),
+        ("receipts", "0002_receipt_numero_solo_receipt_punto_venta"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='receipt',
-            name='mensaje_error',
+            model_name="receipt",
+            name="mensaje_error",
             field=models.TextField(blank=True),
         ),
         migrations.AlterField(
-            model_name='receipt',
-            name='estado',
-            field=models.CharField(choices=[('pendiente_revision', 'Pendiente de revisión'), ('pendiente_carga', 'Pendiente de carga en SIRADIG'), ('cargado_en_siradig', 'Cargado en SIRADIG'), ('error_carga', 'Error en carga en SIRADIG')], default='pendiente_revision', max_length=20),
+            model_name="receipt",
+            name="estado",
+            field=models.CharField(
+                choices=[
+                    ("pendiente_revision", "Pendiente de revisión"),
+                    ("pendiente_carga", "Pendiente de carga en SIRADIG"),
+                    ("cargado_en_siradig", "Cargado en SIRADIG"),
+                    ("error_carga", "Error en carga en SIRADIG"),
+                ],
+                default="pendiente_revision",
+                max_length=20,
+            ),
         ),
     ]

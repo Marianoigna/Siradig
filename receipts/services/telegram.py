@@ -9,7 +9,9 @@ def _url(method: str) -> str:
 
 
 def send_message(chat_id, text: str) -> None:
-    requests.post(_url("sendMessage"), json={"chat_id": chat_id, "text": text}, timeout=10)
+    requests.post(
+        _url("sendMessage"), json={"chat_id": chat_id, "text": text}, timeout=10
+    )
 
 
 def get_file_path(file_id: str) -> str:

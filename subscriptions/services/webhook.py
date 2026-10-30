@@ -114,6 +114,16 @@ def validar_firma_mercadopago(request: Any) -> bool:
     return True
 
 
+def procesar_notificacion_mercadopago(
+    payload: dict[str, Any] | None, query_params: dict[str, Any] | None = None
+) -> tuple[bool, str]:
+    """
+    Procesa las notificaciones enviadas por MercadoPago (Webhooks / IPN).
+    Alias canónico según especificación T6 / RF-007 / RF-008.
+    """
+    return procesar_notificacion_webhook(payload, query_params)
+
+
 def procesar_notificacion_webhook(
     payload: dict[str, Any] | None, query_params: dict[str, Any] | None = None
 ) -> tuple[bool, str]:
@@ -223,7 +233,7 @@ def _parse_external_reference(
     except (User.DoesNotExist, ValueError):
         usuario = None
 
-    plan = Plan.objects.filter(tipo=tipo_plan).first()
+    plan = Plan.objects.filter(nombre=tipo_plan).first()
     if not plan:
         plan = Plan.objects.filter(activo=True).first()
 
@@ -233,9 +243,8 @@ def _parse_external_reference(
 def _procesar_evento_pago(payment_id: str, payload: dict[str, Any]) -> tuple[bool, str]:
     referencia = f"mp_pay_{payment_id}"
 
-    # Idempotencia: Verificar si el pago ya fue registrado y fue exitoso
-    pago_existente = Pago.objects.filter(referencia_gateway=referencia).first()
-    if pago_existente and pago_existente.exitoso:
+    # Idempotencia: Verificar si el pago ya fue registrado y fue exitoso (RN-006)
+    if Pago.objects.filter(referencia_gateway=referencia, exitoso=True).exists():
         logger.info(
             "Pago %s ya procesado previamente (idempotente). Omitiendo.", referencia
         )
@@ -285,22 +294,21 @@ def _procesar_evento_pago(payment_id: str, payload: dict[str, Any]) -> tuple[boo
     monto = Decimal(str(payment_data.get("transaction_amount") or 0))
 
     with transaction.atomic():
+        # Buscar o crear Suscripción del usuario primero (requerida por FK en Pago)
+        suscripcion, _ = Suscripcion.objects.get_or_create(usuario=usuario)
+
         # Registrar o actualizar Pago
         pago, _ = Pago.objects.update_or_create(
             referencia_gateway=referencia,
             defaults={
                 "usuario": usuario,
+                "suscripcion": suscripcion,
                 "monto": monto,
                 "metodo": "mercadopago",
                 "exitoso": True,
                 "datos_gateway": payment_data,
             },
         )
-
-        # Buscar o crear Suscripción del usuario
-        suscripcion, _ = Suscripcion.objects.get_or_create(usuario=usuario)
-        pago.suscripcion = suscripcion
-        pago.save(update_fields=["suscripcion"])
 
         if plan:
             suscripcion.plan = plan
