@@ -194,15 +194,8 @@ def crear_suscripcion_preapproval(
     back_url = _resolver_back_url(request=request)
 
     payer_email = _resolver_payer_email(usuario)
-    logger.info(
-        "Creando preapproval para usuario %s con payer_email=%s y back_url=%s",
-        getattr(usuario, "id", None),
-        payer_email,
-        back_url,
-    )
 
     preapproval_data: dict[str, Any] = {
-        "payer_email": payer_email,
         "back_url": back_url,
         "reason": reason,
         "external_reference": f"{usuario.id}:{plan_slug}",
@@ -213,6 +206,11 @@ def crear_suscripcion_preapproval(
             "currency_id": "ARS",
         },
     }
+
+    # payer_email es opcional para preapproval: si no hay email válido, no se envía
+    # para evitar fallos con usuarios de prueba sin email registrado en MP
+    if payer_email:
+        preapproval_data["payer_email"] = payer_email
 
     # Si hay gateway_plan_id asociado en el Plan o en settings, podemos vincular preapproval_plan_id
     plan_id_asociado = getattr(plan, "gateway_plan_id", "") or getattr(
